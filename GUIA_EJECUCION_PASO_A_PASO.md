@@ -173,7 +173,7 @@ python3 dashboard/server.py
 ```
 
 Abra su navegador web en:
-👉 **`http://localhost:8000`**
+👉 **`http://localhost:8080`**
 
 En el dashboard podrá interactuar con:
 - **KPIs Principales:** Total de víctimas (1.501.809), registros analizados, municipios cubiertos y la **Brecha Nacional de Comisarías (114 faltantes)**.
@@ -249,5 +249,5 @@ El extractor `src/extract_api.py` implementa un mecanismo de caché local en `da
 | **3. Dependencias** | `pip install -r requirements.txt` |
 | **4. Ejecutar Todo** | `python3 src/run_pipeline.py` |
 | **5. Consultar DW** | `docker compose exec postgres_dw psql -U postgres -d etl_dw -f /sql/analytical_queries.sql` |
-| **6. Dashboard Web** | `python3 dashboard/server.py` $\rightarrow$ Abrir `http://localhost:8000` |
+| **6. Dashboard Web** | `python3 dashboard/server.py` $\rightarrow$ Abrir `http://localhost:8080` |
 | **7. Parar BD** | `docker compose down` |
