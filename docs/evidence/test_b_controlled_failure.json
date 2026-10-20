@@ -1,0 +1,47 @@
+{
+  "test_name": "Test B - Controlled Critical Quality Failure",
+  "execution_timestamp": "2026-10-20T18:31:54.373960",
+  "duration_sec": 0.93,
+  "overall_status": "PASSED (CONTROLLED_BLOCKING_VERIFIED)",
+  "condition_injected": "Removed mandatory schema column 'existencia_de_comisarias' from incoming API batch",
+  "violated_rule": "DQ-RAW2-01 (Critical - Schema Completeness)",
+  "expected_behavior": "validate_api_raw fails with ValidationError; transform and load are blocked",
+  "observed_behavior": "validate_api_raw caught Critical failure; all 3 downstream tasks blocked",
+  "pipeline_task_executions": [
+    {
+      "task_id": "extract_primary",
+      "state": "SUCCESS"
+    },
+    {
+      "task_id": "validate_primary_raw",
+      "state": "SUCCESS"
+    },
+    {
+      "task_id": "extract_api",
+      "state": "SUCCESS"
+    },
+    {
+      "task_id": "validate_api_raw",
+      "state": "FAILED",
+      "critical_failure": true,
+      "violated_rule": "DQ-RAW2-01",
+      "severity": "Critical",
+      "error_message": "Gate 2 (API Raw Validation) failed with Critical severity. Execution halted to protect downstream tasks."
+    },
+    {
+      "task_id": "transform_and_clean_and_integrate",
+      "state": "BLOCKED (UPSTREAM_FAILED)",
+      "executed": false
+    },
+    {
+      "task_id": "validate_prepared",
+      "state": "BLOCKED (UPSTREAM_FAILED)",
+      "executed": false
+    },
+    {
+      "task_id": "load_dimensional_dw",
+      "state": "BLOCKED (UPSTREAM_FAILED)",
+      "executed": false
+    }
+  ]
+}

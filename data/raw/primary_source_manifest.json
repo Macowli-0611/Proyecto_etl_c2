@@ -1,0 +1,24 @@
+{
+  "source_name": "Reporte Delito Violencia Intrafamiliar - Policía Nacional (DIJIN)",
+  "source_url": "https://www.datos.gov.co/api/views/vuyt-mqpw/rows.csv?accessType=DOWNLOAD",
+  "extraction_timestamp": "2026-10-20T18:31:54.870609",
+  "local_filepath": "/Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/data/raw/Reporte_Delito_Violencia_Intrafamiliar_Policía_Nacional_20260902.csv",
+  "sha256": "d0f1b7ea949ad48c4121c9431f9706d393c9f40bb6f96c44964970876d2618aa",
+  "file_size_bytes": 65636096,
+  "row_count": 704551,
+  "total_victims_raw": 1501809,
+  "date_range": {
+    "min": "01/01/2010",
+    "max": "31/12/2025"
+  },
+  "columns": [
+    "DEPARTAMENTO",
+    "MUNICIPIO",
+    "CODIGO DANE",
+    "ARMAS MEDIOS",
+    "FECHA HECHO",
+    "GENERO",
+    "GRUPO ETARIO",
+    "CANTIDAD"
+  ]
+}

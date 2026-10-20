@@ -1,0 +1,29 @@
+{
+  "test_name": "Test C - Safe Rerun & Repeatability",
+  "execution_timestamp": "2026-10-20T18:32:14.075589",
+  "duration_sec": 19.7,
+  "idempotency_strategy": "Atomic Transactional DDL Recreate & COPY with Grain Unique Constraint (uq_fact_grano)",
+  "snapshot_before_rerun": {
+    "fact_rows": 701714,
+    "total_victims": 1501809,
+    "total_records": 704551,
+    "dim_geografia_rows": 1113,
+    "dim_tiempo_rows": 6056
+  },
+  "snapshot_after_rerun": {
+    "fact_rows": 701714,
+    "total_victims": 1501809,
+    "total_records": 704551,
+    "dim_geografia_rows": 1113,
+    "dim_tiempo_rows": 6056
+  },
+  "deltas": {
+    "fact_rows_delta": 0,
+    "victims_delta": 0,
+    "records_delta": 0,
+    "dim_geografia_delta": 0,
+    "dim_tiempo_delta": 0
+  },
+  "silent_duplicates_detected": false,
+  "overall_status": "PASSED (IDEMPOTENT_VERIFIED)"
+}

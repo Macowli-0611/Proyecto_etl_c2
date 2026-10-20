@@ -1,0 +1,61 @@
+# Environment and secrets
+.env
+*.env.local
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Data Files (large files > 50MB and intermediate caches)
+data/raw/*.csv
+data/raw/*.json
+data/processed/*.csv
+data/processed/*.parquet
+!data/raw/primary_source_manifest.json
+!data/raw/api_source_manifest.json
+
+# Database and Storage
+pgdata/
+*.sqlite
+*.db
+
+# Airflow
+airflow.cfg
+airflow.db
+logs/
+airflow_logs/
+
+# Great Expectations uncommitted
+gx/uncommitted/
+
+# OS specific
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

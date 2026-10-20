@@ -1,0 +1,101 @@
+{
+  "test_name": "Test A - Successful End-to-End Execution",
+  "execution_timestamp": "2026-10-20T18:32:14.042770",
+  "total_duration_sec": 19.63,
+  "overall_status": "PASSED",
+  "pipeline_task_executions": [
+    {
+      "task_id": "extract_primary",
+      "state": "SUCCESS",
+      "duration_sec": 0.458,
+      "records_extracted": 704551,
+      "victims_raw": 1501809,
+      "sha256": "d0f1b7ea949ad48c4121c9431f9706d393c9f40bb6f96c44964970876d2618aa"
+    },
+    {
+      "task_id": "validate_primary_raw",
+      "state": "SUCCESS",
+      "duration_sec": 0.416,
+      "rules_evaluated": 4,
+      "critical_failure": false
+    },
+    {
+      "task_id": "extract_api",
+      "state": "SUCCESS",
+      "duration_sec": 0.005,
+      "records_extracted": 1249,
+      "distinct_municipalities": 1102,
+      "sha256": "844b7e238d059bfe426213c425c84da5286dab136c56fbd4f65a54a369f3957e"
+    },
+    {
+      "task_id": "validate_api_raw",
+      "state": "SUCCESS",
+      "duration_sec": 0.032,
+      "rules_evaluated": 4,
+      "critical_failure": false
+    },
+    {
+      "task_id": "transform_and_clean_and_integrate",
+      "state": "SUCCESS",
+      "duration_sec": 1.043,
+      "fact_rows": 701714,
+      "collapsed_records": 2837,
+      "enriched_municipalities": 1113
+    },
+    {
+      "task_id": "validate_prepared",
+      "state": "SUCCESS",
+      "duration_sec": 0.09,
+      "rules_evaluated": 5,
+      "critical_failure": false
+    },
+    {
+      "task_id": "load_dimensional_dw",
+      "state": "SUCCESS",
+      "duration_sec": 17.171,
+      "reconciliation": {
+        "expected_source_records": 704551,
+        "loaded_fact_source_records": 704551,
+        "records_delta": 0,
+        "expected_source_victims": 1501809,
+        "loaded_fact_victims": 1501809,
+        "victims_delta": 0,
+        "exact_reconciliation_pass": true
+      },
+      "table_counts": {
+        "dim_tiempo": 6056,
+        "dim_geografia": 1113,
+        "dim_victima": 11,
+        "dim_medio": 6,
+        "dim_comisaria": 1247,
+        "fact_violencia_intrafamiliar": 701714
+      },
+      "orphan_keys": 0
+    }
+  ],
+  "final_reconciliation": {
+    "load_timestamp": "2026-10-20T18:32:14.041593",
+    "status": "SUCCESS",
+    "source_reconciliation": {
+      "expected_source_records": 704551,
+      "loaded_fact_source_records": 704551,
+      "records_delta": 0,
+      "expected_source_victims": 1501809,
+      "loaded_fact_victims": 1501809,
+      "victims_delta": 0,
+      "exact_reconciliation_pass": true
+    },
+    "table_row_counts": {
+      "dim_tiempo": 6056,
+      "dim_geografia": 1113,
+      "dim_victima": 11,
+      "dim_medio": 6,
+      "dim_comisaria": 1247,
+      "fact_violencia_intrafamiliar": 701714
+    },
+    "referential_integrity": {
+      "orphan_foreign_keys_count": 0,
+      "integrity_pass": true
+    }
+  }
+}

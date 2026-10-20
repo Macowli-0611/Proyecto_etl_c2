@@ -1,0 +1,25 @@
+{
+  "load_timestamp": "2026-10-20T18:32:14.041593",
+  "status": "SUCCESS",
+  "source_reconciliation": {
+    "expected_source_records": 704551,
+    "loaded_fact_source_records": 704551,
+    "records_delta": 0,
+    "expected_source_victims": 1501809,
+    "loaded_fact_victims": 1501809,
+    "victims_delta": 0,
+    "exact_reconciliation_pass": true
+  },
+  "table_row_counts": {
+    "dim_tiempo": 6056,
+    "dim_geografia": 1113,
+    "dim_victima": 11,
+    "dim_medio": 6,
+    "dim_comisaria": 1247,
+    "fact_violencia_intrafamiliar": 701714
+  },
+  "referential_integrity": {
+    "orphan_foreign_keys_count": 0,
+    "integrity_pass": true
+  }
+}

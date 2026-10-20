@@ -1,0 +1,60 @@
+{
+  "gate": "validate_prepared",
+  "timestamp": "2026-10-20T18:31:56.871547",
+  "total_fact_rows": 701714,
+  "total_victims": 1501809,
+  "overall_success": true,
+  "critical_failure": false,
+  "results": [
+    {
+      "rule_id": "DQ-PREP-01",
+      "dimension": "Uniqueness",
+      "description": "Fact table uniqueness at declared municipal grain",
+      "expected": "0 duplicates",
+      "actual": "0 duplicates",
+      "severity": "Critical",
+      "success": true
+    },
+    {
+      "rule_id": "DQ-PREP-02",
+      "dimension": "Completeness",
+      "description": "Foreign keys not null in fact table",
+      "expected": "0 nulls",
+      "actual": {
+        "id_tiempo": 0,
+        "id_geografia": 0,
+        "id_victima": 0,
+        "id_medio": 0
+      },
+      "severity": "Critical",
+      "success": true
+    },
+    {
+      "rule_id": "DQ-PREP-03",
+      "dimension": "Consistency",
+      "description": "Referential integrity (fact foreign keys must exist in dimensions)",
+      "expected": "0 orphans",
+      "actual": {},
+      "severity": "Critical",
+      "success": true
+    },
+    {
+      "rule_id": "DQ-PREP-05",
+      "dimension": "Accuracy & Reconciliation",
+      "description": "Reconciliation of measures between source extract and fact table",
+      "expected": "victims=1501809, records=704551",
+      "actual": "victims=1501809, records=704551",
+      "severity": "Critical",
+      "success": true
+    },
+    {
+      "rule_id": "DQ-PREP-04",
+      "dimension": "Validity",
+      "description": "Enriched dim_geografia comisarias_instaladas non-negative",
+      "expected": ">= 0 for all rows",
+      "actual": "min=0",
+      "severity": "Critical",
+      "success": true
+    }
+  ]
+}

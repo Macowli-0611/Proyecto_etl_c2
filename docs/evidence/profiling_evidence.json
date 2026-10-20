@@ -1,0 +1,188 @@
+{
+  "profiling_metadata": {
+    "execution_date": "2026-10-20T18:31:55.323725",
+    "status": "COMPLETED"
+  },
+  "primary_source": {
+    "dataset_name": "Reporte Delito Violencia Intrafamiliar - Policía Nacional",
+    "total_records": 704551,
+    "null_counts": {
+      "DEPARTAMENTO": 0,
+      "MUNICIPIO": 5,
+      "CODIGO DANE": 0,
+      "ARMAS MEDIOS": 0,
+      "FECHA HECHO": 0,
+      "GENERO": 3379,
+      "GRUPO ETARIO": 1406,
+      "CANTIDAD": 0
+    },
+    "null_percentages": {
+      "DEPARTAMENTO": 0.0,
+      "MUNICIPIO": 0.001,
+      "CODIGO DANE": 0.0,
+      "ARMAS MEDIOS": 0.0,
+      "FECHA HECHO": 0.0,
+      "GENERO": 0.48,
+      "GRUPO ETARIO": 0.2,
+      "CANTIDAD": 0.0
+    },
+    "measure_profiling": {
+      "attribute": "CANTIDAD",
+      "total_victims": 1501809,
+      "min": 1.0,
+      "max": 198.0,
+      "mean": 2.13,
+      "invalid_measure_count": 0
+    },
+    "geographic_profiling": {
+      "distinct_8_digit_dane": 2397,
+      "distinct_5_digit_municipalities": 1112,
+      "dane_length_distribution": {
+        "8": 704551
+      },
+      "malformed_dane_rows": 6
+    },
+    "temporal_profiling": {
+      "unparseable_dates": 0,
+      "min_date": "2010-01-01",
+      "max_date": "2026-07-31",
+      "distinct_calendar_days": 6056
+    },
+    "categorical_domains": {
+      "genero": {
+        "FEMENINO": 524321,
+        "MASCULINO": 176831,
+        "nan": 3379,
+        "NO REPORTA": 20
+      },
+      "grupo_etario": {
+        "ADULTOS": 643819,
+        "ADOLESCENTES": 33653,
+        "MENORES": 25673,
+        "nan": 1406
+      },
+      "armas_medios_top": {
+        "CONTUNDENTES": 305260,
+        "SIN EMPLEO DE ARMAS": 296550,
+        "NO REPORTADO": 50965,
+        "ARMA BLANCA / CORTOPUNZANTE": 42362,
+        "ESCOPOLAMINA": 3661,
+        "ARMA DE FUEGO": 3134,
+        "CORTOPUNZANTES": 1154,
+        "CORTANTES": 1134,
+        "PUNZANTES": 331
+      }
+    }
+  },
+  "api_source": {
+    "dataset_name": "Caracterización de las comisarías de familia en el territorio nacional (API)",
+    "total_records": 1249,
+    "null_counts": {
+      "c_digo_dane_departamento": 0,
+      "nombre": 0,
+      "c_digo_dane_municipio": 0,
+      "nombre_1": 0,
+      "tipo_municipio_isla_rea_no": 0,
+      "categoria_municipio": 17,
+      "comisarias_ley_2126_100_000": 115,
+      "existencia_de_comisarias": 106,
+      "nombre_comisaria": 3,
+      "direcci_n_comisara": 0,
+      "telefono_de_contacto": 1,
+      "horario_de_atenci_n": 1,
+      "longitud_de_ubicaci_n_de": 0,
+      "latitud_de_ubicaci_n_de_la": 0,
+      "coordenadas_de_ubicaci_n": 0
+    },
+    "null_percentages": {
+      "c_digo_dane_departamento": 0.0,
+      "nombre": 0.0,
+      "c_digo_dane_municipio": 0.0,
+      "nombre_1": 0.0,
+      "tipo_municipio_isla_rea_no": 0.0,
+      "categoria_municipio": 1.361,
+      "comisarias_ley_2126_100_000": 9.207,
+      "existencia_de_comisarias": 8.487,
+      "nombre_comisaria": 0.24,
+      "direcci_n_comisara": 0.0,
+      "telefono_de_contacto": 0.08,
+      "horario_de_atenci_n": 0.08,
+      "longitud_de_ubicaci_n_de": 0.0,
+      "latitud_de_ubicaci_n_de_la": 0.0,
+      "coordenadas_de_ubicaci_n": 0.0
+    },
+    "dane_key_profiling": {
+      "distinct_raw_codes": 1102,
+      "distinct_padded_5_digit_codes": 1102,
+      "raw_length_distribution": {
+        "5": 1055,
+        "4": 194
+      },
+      "rows_requiring_zero_padding": 194
+    },
+    "categoria_municipio_distribution": {
+      "6": 952,
+      "ESP": 99,
+      "1": 65,
+      "5": 48,
+      "2": 45,
+      "4": 23,
+      "nan": 17
+    },
+    "comisarias_ley_2126_requeridas": {
+      "null_or_invalid_count": 115,
+      "distribution": {
+        "1": 1028,
+        "nan": 115,
+        "2": 51,
+        "4": 16,
+        "3": 14,
+        "6": 12,
+        "5": 8,
+        "9": 4,
+        "7": 1
+      }
+    },
+    "existencia_comisarias_instaladas": {
+      "null_or_invalid_count": 106,
+      "distribution": {
+        "1": 1045,
+        "nan": 106,
+        "2": 37,
+        "0": 24,
+        "3": 22,
+        "6": 6,
+        "5": 5,
+        "4": 4
+      }
+    }
+  },
+  "cross_source_integration": {
+    "integration_key": "codigo_dane_municipio (5-digit DANE code)",
+    "primary_distinct_municipalities": 1112,
+    "api_distinct_municipalities": 1102,
+    "matched_municipalities_count": 1100,
+    "primary_coverage_percentage": 98.92,
+    "unmatched_primary_count": 12,
+    "unmatched_primary_samples": [
+      "00000",
+      "52000",
+      "88001",
+      "91263",
+      "91405",
+      "91407",
+      "91460",
+      "91536",
+      "91669",
+      "91798",
+      "94883",
+      "97511"
+    ],
+    "unmatched_api_count": 2,
+    "unmatched_api_samples": [
+      "27150",
+      "94343"
+    ],
+    "integration_risk_assessment": "Primary codes not in API correspond to non-municipalized areas (corregimientos departamentales in Amazonas, Vaupés, Guainía) and 6 malformed source rows (00000, 52000). Handled via left join with explicit default institution metrics without dropping any primary victim."
+  }
+}
