@@ -1,6 +1,6 @@
 {
   "gate": "validate_prepared",
-  "timestamp": "2026-10-20T18:31:56.871547",
+  "timestamp": "2026-10-20T18:53:55.056599",
   "total_fact_rows": 701714,
   "total_victims": 1501809,
   "overall_success": true,

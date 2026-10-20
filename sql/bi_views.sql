@@ -95,3 +95,10 @@ GROUP BY
     g.codigo_dane_municipio, g.municipio, g.departamento,
     g.categoria_municipio, g.comisarias_instaladas,
     g.comisarias_requeridas_ley, g.brecha_comisarias;
+
+-- 4. Convenient view aliases for R6 and R7
+CREATE OR REPLACE VIEW vw_r6_sobrecarga_comisarias AS
+SELECT * FROM vw_bi_presion_institucional;
+
+CREATE OR REPLACE VIEW vw_r7_prioridad_intervencion AS
+SELECT * FROM vw_bi_brecha_riesgo_menores;

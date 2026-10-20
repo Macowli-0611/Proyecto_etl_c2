@@ -1,7 +1,7 @@
 {
   "test_name": "Test B - Controlled Critical Quality Failure",
-  "execution_timestamp": "2026-10-20T18:31:54.373960",
-  "duration_sec": 0.93,
+  "execution_timestamp": "2026-10-20T18:53:52.535390",
+  "duration_sec": 0.94,
   "overall_status": "PASSED (CONTROLLED_BLOCKING_VERIFIED)",
   "condition_injected": "Removed mandatory schema column 'existencia_de_comisarias' from incoming API batch",
   "violated_rule": "DQ-RAW2-01 (Critical - Schema Completeness)",

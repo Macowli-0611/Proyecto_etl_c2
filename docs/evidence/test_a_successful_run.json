@@ -1,13 +1,13 @@
 {
   "test_name": "Test A - Successful End-to-End Execution",
-  "execution_timestamp": "2026-10-20T18:32:14.042770",
-  "total_duration_sec": 19.63,
+  "execution_timestamp": "2026-10-20T18:54:12.596197",
+  "total_duration_sec": 20.01,
   "overall_status": "PASSED",
   "pipeline_task_executions": [
     {
       "task_id": "extract_primary",
       "state": "SUCCESS",
-      "duration_sec": 0.458,
+      "duration_sec": 0.461,
       "records_extracted": 704551,
       "victims_raw": 1501809,
       "sha256": "d0f1b7ea949ad48c4121c9431f9706d393c9f40bb6f96c44964970876d2618aa"
@@ -15,7 +15,7 @@
     {
       "task_id": "validate_primary_raw",
       "state": "SUCCESS",
-      "duration_sec": 0.416,
+      "duration_sec": 0.437,
       "rules_evaluated": 4,
       "critical_failure": false
     },
@@ -30,14 +30,14 @@
     {
       "task_id": "validate_api_raw",
       "state": "SUCCESS",
-      "duration_sec": 0.032,
+      "duration_sec": 0.034,
       "rules_evaluated": 4,
       "critical_failure": false
     },
     {
       "task_id": "transform_and_clean_and_integrate",
       "state": "SUCCESS",
-      "duration_sec": 1.043,
+      "duration_sec": 1.023,
       "fact_rows": 701714,
       "collapsed_records": 2837,
       "enriched_municipalities": 1113
@@ -45,14 +45,14 @@
     {
       "task_id": "validate_prepared",
       "state": "SUCCESS",
-      "duration_sec": 0.09,
+      "duration_sec": 0.091,
       "rules_evaluated": 5,
       "critical_failure": false
     },
     {
       "task_id": "load_dimensional_dw",
       "state": "SUCCESS",
-      "duration_sec": 17.171,
+      "duration_sec": 17.539,
       "reconciliation": {
         "expected_source_records": 704551,
         "loaded_fact_source_records": 704551,
@@ -74,7 +74,7 @@
     }
   ],
   "final_reconciliation": {
-    "load_timestamp": "2026-10-20T18:32:14.041593",
+    "load_timestamp": "2026-10-20T18:54:12.594322",
     "status": "SUCCESS",
     "source_reconciliation": {
       "expected_source_records": 704551,

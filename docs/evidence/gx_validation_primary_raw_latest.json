@@ -1,6 +1,6 @@
 {
   "gate": "validate_primary_raw",
-  "timestamp": "2026-10-20T18:31:55.286103",
+  "timestamp": "2026-10-20T18:53:53.482145",
   "total_records": 704551,
   "overall_success": true,
   "critical_failure": false,
