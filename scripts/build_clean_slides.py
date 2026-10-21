@@ -839,7 +839,7 @@ html_content = f'''<!DOCTYPE html>
       <div class="slide-body">
         <div class="grid-diagram-text">
           <!-- Imagen -->
-          <div class="chart-container" style="height: 100%; min-height: 380px;" onclick="openLightbox('{b64['workflow']}', 'Diagrama de Arquitectura y Flujo del Pipeline ETL')">
+          <div class="chart-container" style="height: 100%; min-height: 380px;" onclick="openLightbox(this.querySelector('img').src, 'Diagrama de Arquitectura y Flujo del Pipeline ETL')">
             <img src="{b64['workflow']}" alt="Arquitectura del Pipeline">
             <div class="zoom-hint">🔍 Clic para ampliar diagrama</div>
           </div>
@@ -983,7 +983,7 @@ html_content = f'''<!DOCTYPE html>
       <div class="slide-body">
         <div class="grid-diagram-text">
           <!-- Imagen -->
-          <div class="chart-container" style="height: 100%; min-height: 380px;" onclick="openLightbox('{b64['dimensional']}', 'Modelo Dimensional en Estrella - Data Warehouse')">
+          <div class="chart-container" style="height: 100%; min-height: 380px;" onclick="openLightbox(this.querySelector('img').src, 'Modelo Dimensional en Estrella - Data Warehouse')">
             <img src="{b64['dimensional']}" alt="Modelo Dimensional">
             <div class="zoom-hint">🔍 Clic para ampliar esquema</div>
           </div>
@@ -1169,7 +1169,7 @@ html_content = f'''<!DOCTYPE html>
           <div class="card" style="padding: 16px;">
             <div>
               <div class="card-title" style="font-size: 0.95rem;">R1: Evolución Anual</div>
-              <div class="chart-container" style="height: 170px; margin: 10px 0;" onclick="openLightbox('{b64['r1']}', 'R1: Evolución Histórica de Casos 2010 a 2026')">
+              <div class="chart-container" style="height: 170px; margin: 10px 0;" onclick="openLightbox(this.querySelector('img').src, 'R1: Evolución Histórica de Casos 2010 a 2026')">
                 <img src="{b64['r1']}" alt="R1 Evolución">
                 <div class="zoom-hint">🔍 Ampliar</div>
               </div>
@@ -1181,7 +1181,7 @@ html_content = f'''<!DOCTYPE html>
           <div class="card" style="padding: 16px;">
             <div>
               <div class="card-title" style="font-size: 0.95rem;">R2: Departamentos</div>
-              <div class="chart-container" style="height: 170px; margin: 10px 0;" onclick="openLightbox('{b64['r2']}', 'R2: Concentración Departamental de Violencia')">
+              <div class="chart-container" style="height: 170px; margin: 10px 0;" onclick="openLightbox(this.querySelector('img').src, 'R2: Concentración Departamental de Violencia')">
                 <img src="{b64['r2']}" alt="R2 Departamentos">
                 <div class="zoom-hint">🔍 Ampliar</div>
               </div>
@@ -1193,7 +1193,7 @@ html_content = f'''<!DOCTYPE html>
           <div class="card" style="padding: 16px;">
             <div>
               <div class="card-title" style="font-size: 0.95rem;">R3: Brecha de Género</div>
-              <div class="chart-container" style="height: 170px; margin: 10px 0;" onclick="openLightbox('{b64['r3']}', 'R3: Distribución por Sexo y Grupos de Edad')">
+              <div class="chart-container" style="height: 170px; margin: 10px 0;" onclick="openLightbox(this.querySelector('img').src, 'R3: Distribución por Sexo y Grupos de Edad')">
                 <img src="{b64['r3']}" alt="R3 Género">
                 <div class="zoom-hint">🔍 Ampliar</div>
               </div>
@@ -1205,7 +1205,7 @@ html_content = f'''<!DOCTYPE html>
           <div class="card" style="padding: 16px;">
             <div>
               <div class="card-title" style="font-size: 0.95rem;">R4: Mecanismos</div>
-              <div class="chart-container" style="height: 170px; margin: 10px 0;" onclick="openLightbox('{b64['r4']}', 'R4: Armas y Mecanismos de Agresión')">
+              <div class="chart-container" style="height: 170px; margin: 10px 0;" onclick="openLightbox(this.querySelector('img').src, 'R4: Armas y Mecanismos de Agresión')">
                 <img src="{b64['r4']}" alt="R4 Armas">
                 <div class="zoom-hint">🔍 Ampliar</div>
               </div>
@@ -1228,7 +1228,7 @@ html_content = f'''<!DOCTYPE html>
           <div class="card">
             <div>
               <div class="card-title">R5: Menores de Edad</div>
-              <div class="chart-container" style="height: 210px; margin: 10px 0;" onclick="openLightbox('{b64['r5']}', 'R5: Vulnerabilidad Geográfica de Menores de Edad')">
+              <div class="chart-container" style="height: 210px; margin: 10px 0;" onclick="openLightbox(this.querySelector('img').src, 'R5: Vulnerabilidad Geográfica de Menores de Edad')">
                 <img src="{b64['r5']}" alt="R5 Menores">
                 <div class="zoom-hint">🔍 Ampliar mapa</div>
               </div>
@@ -1243,7 +1243,7 @@ html_content = f'''<!DOCTYPE html>
           <div class="card">
             <div>
               <div class="card-title" style="color: var(--warning);">R6: Sobrecarga de Comisarías</div>
-              <div class="chart-container" style="height: 210px; margin: 10px 0;" onclick="openLightbox('{b64['r6']}', 'R6: Casos Anuales por Cada Comisaría de Familia')">
+              <div class="chart-container" style="height: 210px; margin: 10px 0;" onclick="openLightbox(this.querySelector('img').src, 'R6: Casos Anuales por Cada Comisaría de Familia')">
                 <img src="{b64['r6']}" alt="R6 Sobrecarga">
                 <div class="zoom-hint">🔍 Ampliar gráfica</div>
               </div>
@@ -1258,7 +1258,7 @@ html_content = f'''<!DOCTYPE html>
           <div class="card">
             <div>
               <div class="card-title" style="color: var(--danger);">R7: Municipios sin Comisaría</div>
-              <div class="chart-container" style="height: 210px; margin: 10px 0;" onclick="openLightbox('{b64['r7']}', 'R7: Municipios Críticos con Cero Comisarías')">
+              <div class="chart-container" style="height: 210px; margin: 10px 0;" onclick="openLightbox(this.querySelector('img').src, 'R7: Municipios Críticos con Cero Comisarías')">
                 <img src="{b64['r7']}" alt="R7 Prioridad">
                 <div class="zoom-hint">🔍 Ampliar listado</div>
               </div>
