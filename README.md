@@ -516,8 +516,8 @@ docker compose exec postgres_dw psql -U postgres -d etl_dw -c "SELECT COUNT(*) A
 
 | Acción | Comando (Windows PowerShell / Bash) | Descripción |
 | :--- | :--- | :--- |
-| **Prender Airflow** | `docker compose up -d airflow` | Inicia o levanta el servicio de Airflow en segundo plano. |
-| **Apagar Airflow** | `docker compose stop airflow` | Detiene temporalmente Airflow sin borrar datos ni configuraciones. |
+| **Prender Airflow (y Base de Datos)** | `docker compose up -d` | Inicia Airflow y PostgreSQL en segundo plano (Web UI lista en `http://localhost:8080`). |
+| **Apagar todo en general** | `docker compose down` | Detiene y remueve todos los contenedores, liberando los puertos 8080 y 5432. |
 | **Ver si está activo** | `docker compose ps` | Muestra el estado del contenedor (`Up`) y el puerto activo (`8080`). |
 | **Ver si el DAG está pausado** | `docker compose exec airflow airflow dags list` | Lista los DAGs y confirma si `is_paused` es `False` (activo) o `True`. |
 | **Despausar el DAG** | `docker compose exec airflow airflow dags unpause etl_violencia_intrafamiliar_segunda_entrega` | Activa el DAG para que responda a ejecuciones manuales o programadas. |
