@@ -1,0 +1,12 @@
+.git
+.gitignore
+data/
+docs/powerbi/*.pbix
+*.parquet
+*.csv
+__pycache__
+*.pyc
+.env
+venv/
+.venv/
+.DS_Store

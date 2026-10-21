@@ -1068,67 +1068,89 @@ html_content = f'''<!DOCTYPE html>
     <!-- SLIDE 8: PRUEBAS REALES DE CONFIABILIDAD (A, B, C) -->
     <section class="slide" data-slide="8">
       <div class="slide-header">
-        <h2 class="slide-title">Pruebas Reales de Confiabilidad (A, B y C)</h2>
-        <p class="slide-subtitle">Demostración práctica de comportamiento en caso de éxito, falla controlada y re-ejecución.</p>
+        <h2 class="slide-title">Pruebas Reales de Confiabilidad en Airflow (A, B y C)</h2>
+        <p class="slide-subtitle">Monitoreo de tareas en el Web UI de Airflow 3: comparación entre la corrida exitosa y el bloqueo por falla controlada.</p>
       </div>
       <div class="slide-body">
-        <div class="grid-3">
-          <!-- Test A -->
+        <div class="grid-2">
+          <!-- Columna 1: Matriz de Tareas de Airflow Web UI -->
           <div class="card">
             <div>
-              <div class="card-title" style="color: var(--success);">Prueba A: Ejecución Exitosa</div>
-              <p class="card-desc" style="margin-bottom: 12px;">El pipeline completo corriendo con datos válidos.</p>
-              <ul class="clean-list" style="font-size: 0.88rem; gap: 8px;">
-                <li>Tiempo total de ejecución: <strong>22.20 segundos</strong>.</li>
-                <li>Compuertas 1, 2 y 3 aprobadas al 100%.</li>
-                <li>701,714 filas cargadas en PostgreSQL.</li>
-                <li>Diferencia de víctimas entre origen y destino: <strong>0</strong>.</li>
-                <li>Claves huérfanas en dimensiones: <strong>0</strong>.</li>
-              </ul>
-            </div>
-            <div class="callout callout-success">
-              <strong>Estado:</strong> APROBADO (100% de reconciliación).
-            </div>
-          </div>
-
-          <!-- Test B -->
-          <div class="card">
-            <div>
-              <div class="card-title" style="color: var(--danger);">Prueba B: Falla Controlada (Airflow)</div>
-              <p class="card-desc" style="margin-bottom: 8px;">Inyección de error para probar el freno de emergencia.</p>
-              <ul class="clean-list" style="font-size: 0.85rem; gap: 6px;">
-                <li><strong>Inyección:</strong> Se removió columna obligatoria de comisarías.</li>
-                <li><strong>Freno en Gate 2:</strong> <code>validate_api_raw</code> detectó violación crítica y lanzó <code>AirflowFailException</code>.</li>
-              </ul>
-              <div style="font-family: var(--font-mono); font-size: 0.74rem; background: var(--bg-alt); padding: 8px 10px; border-radius: 6px; margin: 8px 0; border: 1px solid var(--border); line-height: 1.45;">
-                <div style="color: var(--text-dim); margin-bottom: 2px;"># Estados en Airflow Web UI:</div>
-                <div>extract_api: <span style="color: var(--success); font-weight: 600;">success</span></div>
-                <div>validate_api_raw: <span style="color: var(--danger); font-weight: 700;">FAILED</span></div>
-                <div>transform_and_clean: <span style="color: var(--warning); font-weight: 600;">upstream_failed</span></div>
-                <div>load_dimensional_dw: <span style="color: var(--warning); font-weight: 600;">upstream_failed</span></div>
-              </div>
-            </div>
-            <div class="callout callout-danger">
-              <strong>Protección Total:</strong> Downstream bloqueado, DW 100% intacto.
-            </div>
-          </div>
-
-          <!-- Test C -->
-          <div class="card">
-            <div>
-              <div class="card-title" style="color: var(--primary);">Prueba C: Re-ejecución Segura</div>
-              <p class="card-desc" style="margin-bottom: 12px;">Ejecución del mismo lote dos veces seguidas (Idempotencia).</p>
-              <div class="table-box" style="margin: 8px 0;">
-                <table class="styled-table" style="font-size: 0.8rem;">
-                  <tr><th>Métrica</th><th>Antes</th><th>Después</th><th>Delta</th></tr>
-                  <tr><td>Filas Fact</td><td>701,714</td><td>701,714</td><td><strong>0</strong></td></tr>
-                  <tr><td>Víctimas</td><td>1,501,809</td><td>1,501,809</td><td><strong>0</strong></td></tr>
-                  <tr><td>Municipios</td><td>1,113</td><td>1,113</td><td><strong>0</strong></td></tr>
+              <div class="card-title">Estados de Tareas en Airflow Web UI (Grid View)</div>
+              <p class="card-desc" style="margin-bottom: 12px;">Datos reales obtenidos de la ejecución en <code>localhost:8080</code>:</p>
+              
+              <div class="table-box" style="margin-bottom: 12px;">
+                <table class="styled-table" style="font-size: 0.82rem;">
+                  <tr>
+                    <th>Tarea del DAG</th>
+                    <th style="text-align: center;">Corrida 1 (Test A - Éxito)</th>
+                    <th style="text-align: center;">Corrida 2 (Test B - Falla)</th>
+                  </tr>
+                  <tr>
+                    <td><code>extract_primary</code></td>
+                    <td style="text-align: center;"><span style="color: var(--success); font-weight: 600;">● success (3.2s)</span></td>
+                    <td style="text-align: center;"><span style="color: var(--success); font-weight: 600;">● success (1.6s)</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>validate_primary_raw</code></td>
+                    <td style="text-align: center;"><span style="color: var(--success); font-weight: 600;">● success (2.2s)</span></td>
+                    <td style="text-align: center;"><span style="color: var(--success); font-weight: 600;">● success (2.2s)</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>extract_api</code></td>
+                    <td style="text-align: center;"><span style="color: var(--success); font-weight: 600;">● success (4.6s)</span></td>
+                    <td style="text-align: center;"><span style="color: var(--success); font-weight: 600;">● success (2.1s)</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>validate_api_raw</code></td>
+                    <td style="text-align: center;"><span style="color: var(--success); font-weight: 600;">● success (1.1s)</span></td>
+                    <td style="text-align: center;"><span style="color: var(--danger); font-weight: 700; background: var(--danger-bg); padding: 2px 6px; border-radius: 4px;">● failed (6.0s)</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>transform_and_clean_and_integrate</code></td>
+                    <td style="text-align: center;"><span style="color: var(--success); font-weight: 600;">● success (2.8s)</span></td>
+                    <td style="text-align: center;"><span style="color: var(--warning); font-weight: 600; background: var(--warning-bg); padding: 2px 6px; border-radius: 4px;">● upstream_failed</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>validate_prepared</code></td>
+                    <td style="text-align: center;"><span style="color: var(--success); font-weight: 600;">● success (1.7s)</span></td>
+                    <td style="text-align: center;"><span style="color: var(--warning); font-weight: 600; background: var(--warning-bg); padding: 2px 6px; border-radius: 4px;">● upstream_failed</span></td>
+                  </tr>
+                  <tr>
+                    <td><code>load_dimensional_dw</code></td>
+                    <td style="text-align: center;"><span style="color: var(--success); font-weight: 600;">● success (17.4s)</span></td>
+                    <td style="text-align: center;"><span style="color: var(--warning); font-weight: 600; background: var(--warning-bg); padding: 2px 6px; border-radius: 4px;">● upstream_failed</span></td>
+                  </tr>
                 </table>
               </div>
             </div>
-            <div class="callout callout-primary">
-              <strong>Estado:</strong> APROBADO (Cero registros duplicados).
+            <div class="callout callout-primary" style="display: flex; justify-content: space-between; align-items: center;">
+              <span><strong>Airflow en Vivo:</strong> <code>http://localhost:8080</code> (admin / admin)</span>
+              <a href="http://localhost:8080" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: none; font-size: 0.8rem;">Abrir Webserver ↗</a>
+            </div>
+          </div>
+
+          <!-- Columna 2: Las 3 Conclusiones de Confiabilidad -->
+          <div class="card">
+            <div>
+              <div class="card-title">Interpretación de las Pruebas de Confiabilidad</div>
+              <ul class="clean-list" style="margin-top: 10px;">
+                <li>
+                  <strong style="color: var(--success);">Test A (Ejecución Exitosa):</strong>
+                  Todas las tareas en verde. 704,551 denuncias procesadas, 701,714 filas fact cargadas en PostgreSQL, 1,501,809 víctimas reconciliadas con delta cero y 0 claves huérfanas.
+                </li>
+                <li>
+                  <strong style="color: var(--danger);">Test B (Freno ante Falla Crítica):</strong>
+                  Al faltar la columna obligatoria de comisarías, Gate 2 lanzó <code>AirflowFailException</code>. Como se ve en la tabla de la izquierda, la tarea quedó en <span style="color: var(--danger); font-weight: 600;">failed</span> y las 3 tareas posteriores pasaron a <span style="color: var(--warning); font-weight: 600;">upstream_failed</span>. El Data Warehouse quedó 100% intacto.
+                </li>
+                <li>
+                  <strong style="color: var(--primary);">Test C (Re-ejecución Segura / Idempotencia):</strong>
+                  Se volvió a correr el pipeline sobre el mismo lote de datos. Verificamos los conteos de la base de datos antes y después: deltas = 0 en todas las tablas y 0 filas duplicadas.
+                </li>
+              </ul>
+            </div>
+            <div class="callout callout-success">
+              <strong>Garantía de Ingeniería:</strong> Confiabilidad probada tanto en caso exitoso como ante fallas reales.
             </div>
           </div>
         </div>

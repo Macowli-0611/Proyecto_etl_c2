@@ -2,16 +2,45 @@
   "gate": "validate_api_raw",
   "suite_name": "api_raw_suite",
   "suite_file": "gx/expectations/api_raw_suite.json",
-  "batch_id": null,
-  "timestamp": "2026-10-21T17:29:32.658648",
+  "batch_id": "844b7e238d059bfe426213c425c84da5286dab136c56fbd4f65a54a369f3957e",
+  "timestamp": "2026-10-21T23:10:57.098115",
   "total_records": 1249,
   "rules_evaluated": 5,
-  "overall_success": true,
-  "critical_failure": false,
-  "failed_critical_rules": [],
-  "failed_warning_rules": [],
-  "pipeline_action": "CONTINUE: all rules passed.",
+  "overall_success": false,
+  "critical_failure": true,
+  "failed_critical_rules": [
+    "DQ-RAW2-01",
+    "DQ-RAW2-04"
+  ],
+  "failed_warning_rules": [
+    "DQ-RAW2-05"
+  ],
+  "pipeline_action": "STOP: Critical rule violated; downstream tasks must not run.",
   "results": [
+    {
+      "rule_id": "DQ-RAW2-04",
+      "severity": "Critical",
+      "expectation": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "existencia_numeric",
+        "min_value": 0
+      },
+      "data_object": "raw_api_batch",
+      "success": null,
+      "status": "NOT_EVALUATED_COLUMN_MISSING"
+    },
+    {
+      "rule_id": "DQ-RAW2-05",
+      "severity": "Warning",
+      "expectation": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "existencia_de_comisarias",
+        "mostly": 0.9
+      },
+      "data_object": "raw_api_batch",
+      "success": null,
+      "status": "NOT_EVALUATED_COLUMN_MISSING"
+    },
     {
       "rule_id": "DQ-RAW2-01",
       "severity": "Critical",
@@ -29,8 +58,8 @@
         "exact_match": false
       },
       "data_object": "raw_api_batch",
-      "success": true,
-      "status": "PASSED",
+      "success": false,
+      "status": "FAILED",
       "result": {
         "observed_value": [
           "c_digo_dane_departamento",
@@ -39,8 +68,6 @@
           "comisarias_ley_2126_100_000",
           "coordenadas_de_ubicaci_n",
           "direcci_n_comisara",
-          "existencia_de_comisarias",
-          "existencia_numeric",
           "horario_de_atenci_n",
           "latitud_de_ubicaci_n_de_la",
           "longitud_de_ubicaci_n_de",
@@ -56,7 +83,6 @@
               "c_digo_dane_departamento",
               "coordenadas_de_ubicaci_n",
               "direcci_n_comisara",
-              "existencia_numeric",
               "horario_de_atenci_n",
               "latitud_de_ubicaci_n_de_la",
               "longitud_de_ubicaci_n_de",
@@ -65,6 +91,9 @@
               "nombre_comisaria",
               "telefono_de_contacto",
               "tipo_municipio_isla_rea_no"
+            ],
+            "missing": [
+              "existencia_de_comisarias"
             ]
           }
         }
@@ -128,64 +157,6 @@
         "unexpected_percent": 0.0,
         "unexpected_percent_nonmissing": 0.0,
         "partial_unexpected_list": []
-      },
-      "exception": null
-    },
-    {
-      "rule_id": "DQ-RAW2-04",
-      "severity": "Critical",
-      "dimension": "Validity (range)",
-      "requirement": "R6, R7",
-      "metric": "Installed comisarías >= 0 for 100% of non-null values",
-      "expectation": "expect_column_values_to_be_between",
-      "kwargs": {
-        "column": "existencia_numeric",
-        "min_value": 0
-      },
-      "data_object": "raw_api_batch",
-      "success": true,
-      "status": "PASSED",
-      "result": {
-        "element_count": 1249,
-        "missing_count": 106,
-        "missing_percent": 8.486789431545235,
-        "unexpected_count": 0,
-        "unexpected_percent": 0.0,
-        "unexpected_percent_nonmissing": 0.0,
-        "partial_unexpected_list": []
-      },
-      "exception": null
-    },
-    {
-      "rule_id": "DQ-RAW2-05",
-      "severity": "Warning",
-      "dimension": "Completeness",
-      "requirement": "R6",
-      "metric": "Null existencia_de_comisarias <= 10%",
-      "expectation": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column": "existencia_de_comisarias",
-        "mostly": 0.9
-      },
-      "data_object": "raw_api_batch",
-      "success": true,
-      "status": "PASSED",
-      "result": {
-        "element_count": 1249,
-        "unexpected_count": 106,
-        "unexpected_percent": 8.486789431545235,
-        "partial_unexpected_list": [
-          NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN
-        ]
       },
       "exception": null
     }

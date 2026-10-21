@@ -1,0 +1,357 @@
+{
+  "gate": "validate_prepared",
+  "suite_name": "prepared_data_suite",
+  "suite_file": "gx/expectations/prepared_data_suite.json",
+  "batch_id": "integrated_d0f1b7ea_844b7e23",
+  "timestamp": "2026-10-21T23:09:58.701153",
+  "total_fact_rows": 701714,
+  "total_victims": 1501809,
+  "total_records": 704551,
+  "expected_victims": 1501809,
+  "expected_records": 704551,
+  "dim_geografia_rows": 1113,
+  "rules_evaluated": 13,
+  "overall_success": true,
+  "critical_failure": false,
+  "failed_critical_rules": [],
+  "failed_warning_rules": [],
+  "pipeline_action": "CONTINUE: all rules passed.",
+  "results": [
+    {
+      "rule_id": "DQ-PREP-01",
+      "severity": "Critical",
+      "dimension": "Uniqueness (declared grain)",
+      "requirement": "R1-R7",
+      "metric": "Duplicate grain combinations = 0",
+      "expectation": "expect_compound_columns_to_be_unique",
+      "kwargs": {
+        "column_list": [
+          "id_tiempo",
+          "id_geografia",
+          "id_victima",
+          "id_medio"
+        ]
+      },
+      "data_object": "fact_violencia_intrafamiliar",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 701714,
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-PREP-02",
+      "severity": "Critical",
+      "dimension": "Completeness (keys)",
+      "requirement": "R1-R7",
+      "metric": "Null id_tiempo = 0",
+      "expectation": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "id_tiempo"
+      },
+      "data_object": "fact_violencia_intrafamiliar",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 701714,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-PREP-03",
+      "severity": "Critical",
+      "dimension": "Consistency (referential integrity)",
+      "requirement": "R1",
+      "metric": "Orphan id_tiempo = 0",
+      "expectation": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "id_tiempo",
+        "value_set": "<6056 values>"
+      },
+      "data_object": "fact_violencia_intrafamiliar",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 701714,
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-PREP-02",
+      "severity": "Critical",
+      "dimension": "Completeness (keys)",
+      "requirement": "R1-R7",
+      "metric": "Null id_geografia = 0",
+      "expectation": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "id_geografia"
+      },
+      "data_object": "fact_violencia_intrafamiliar",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 701714,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-PREP-03",
+      "severity": "Critical",
+      "dimension": "Consistency (referential integrity)",
+      "requirement": "R2, R5, R6, R7",
+      "metric": "Orphan id_geografia = 0",
+      "expectation": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "id_geografia",
+        "value_set": "<1113 values>"
+      },
+      "data_object": "fact_violencia_intrafamiliar",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 701714,
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-PREP-02",
+      "severity": "Critical",
+      "dimension": "Completeness (keys)",
+      "requirement": "R1-R7",
+      "metric": "Null id_victima = 0",
+      "expectation": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "id_victima"
+      },
+      "data_object": "fact_violencia_intrafamiliar",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 701714,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-PREP-03",
+      "severity": "Critical",
+      "dimension": "Consistency (referential integrity)",
+      "requirement": "R3, R5",
+      "metric": "Orphan id_victima = 0",
+      "expectation": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "id_victima",
+        "value_set": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ]
+      },
+      "data_object": "fact_violencia_intrafamiliar",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 701714,
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-PREP-02",
+      "severity": "Critical",
+      "dimension": "Completeness (keys)",
+      "requirement": "R1-R7",
+      "metric": "Null id_medio = 0",
+      "expectation": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "id_medio"
+      },
+      "data_object": "fact_violencia_intrafamiliar",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 701714,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-PREP-03",
+      "severity": "Critical",
+      "dimension": "Consistency (referential integrity)",
+      "requirement": "R4, R5",
+      "metric": "Orphan id_medio = 0",
+      "expectation": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "id_medio",
+        "value_set": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      },
+      "data_object": "fact_violencia_intrafamiliar",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 701714,
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-PREP-05",
+      "severity": "Critical",
+      "dimension": "Accuracy (reconciliation)",
+      "requirement": "R1-R7",
+      "metric": "SUM(cantidad_victimas) - SUM(raw CANTIDAD) = 0",
+      "expectation": "expect_column_sum_to_be_between",
+      "kwargs": {
+        "column": "cantidad_victimas",
+        "min_value": 1501809,
+        "max_value": 1501809
+      },
+      "data_object": "fact_violencia_intrafamiliar",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "observed_value": "1501809"
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-PREP-05",
+      "severity": "Critical",
+      "dimension": "Accuracy (reconciliation)",
+      "requirement": "R1-R7",
+      "metric": "SUM(numero_registros) - raw row count = 0",
+      "expectation": "expect_column_sum_to_be_between",
+      "kwargs": {
+        "column": "numero_registros",
+        "min_value": 704551,
+        "max_value": 704551
+      },
+      "data_object": "fact_violencia_intrafamiliar",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "observed_value": "704551"
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-PREP-04",
+      "severity": "Critical",
+      "dimension": "Validity (derived attribute)",
+      "requirement": "R6, R7",
+      "metric": "comisarias_instaladas >= 0 for 100% of municipalities",
+      "expectation": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "comisarias_instaladas",
+        "min_value": 0
+      },
+      "data_object": "dim_geografia",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 1113,
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-PREP-06",
+      "severity": "Warning",
+      "dimension": "Integration coverage (matching indicator)",
+      "requirement": "R6, R7",
+      "metric": "Municipalities matched to the API >= 98%",
+      "expectation": "expect_column_values_to_not_be_in_set",
+      "kwargs": {
+        "column": "categoria_municipio",
+        "value_set": [
+          "ÁREA NO MUNICIPALIZADA"
+        ],
+        "mostly": 0.98
+      },
+      "data_object": "dim_geografia",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 1113,
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_count": 11,
+        "unexpected_percent": 0.9883198562443846,
+        "unexpected_percent_nonmissing": 0.9883198562443846,
+        "partial_unexpected_list": [
+          "ÁREA NO MUNICIPALIZADA",
+          "ÁREA NO MUNICIPALIZADA",
+          "ÁREA NO MUNICIPALIZADA",
+          "ÁREA NO MUNICIPALIZADA",
+          "ÁREA NO MUNICIPALIZADA",
+          "ÁREA NO MUNICIPALIZADA",
+          "ÁREA NO MUNICIPALIZADA",
+          "ÁREA NO MUNICIPALIZADA",
+          "ÁREA NO MUNICIPALIZADA",
+          "ÁREA NO MUNICIPALIZADA"
+        ]
+      },
+      "exception": null
+    }
+  ]
+}

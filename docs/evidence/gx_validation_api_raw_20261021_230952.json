@@ -1,0 +1,193 @@
+{
+  "gate": "validate_api_raw",
+  "suite_name": "api_raw_suite",
+  "suite_file": "gx/expectations/api_raw_suite.json",
+  "batch_id": "844b7e238d059bfe426213c425c84da5286dab136c56fbd4f65a54a369f3957e",
+  "timestamp": "2026-10-21T23:09:52.265008",
+  "total_records": 1249,
+  "rules_evaluated": 5,
+  "overall_success": true,
+  "critical_failure": false,
+  "failed_critical_rules": [],
+  "failed_warning_rules": [],
+  "pipeline_action": "CONTINUE: all rules passed.",
+  "results": [
+    {
+      "rule_id": "DQ-RAW2-01",
+      "severity": "Critical",
+      "dimension": "Completeness (schema)",
+      "requirement": "R6, R7",
+      "metric": "Missing mandatory attributes = 0",
+      "expectation": "expect_table_columns_to_match_set",
+      "kwargs": {
+        "column_set": [
+          "c_digo_dane_municipio",
+          "categoria_municipio",
+          "existencia_de_comisarias",
+          "comisarias_ley_2126_100_000"
+        ],
+        "exact_match": false
+      },
+      "data_object": "raw_api_batch",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "observed_value": [
+          "c_digo_dane_departamento",
+          "c_digo_dane_municipio",
+          "categoria_municipio",
+          "comisarias_ley_2126_100_000",
+          "coordenadas_de_ubicaci_n",
+          "direcci_n_comisara",
+          "existencia_de_comisarias",
+          "existencia_numeric",
+          "horario_de_atenci_n",
+          "latitud_de_ubicaci_n_de_la",
+          "longitud_de_ubicaci_n_de",
+          "nombre",
+          "nombre_1",
+          "nombre_comisaria",
+          "telefono_de_contacto",
+          "tipo_municipio_isla_rea_no"
+        ],
+        "details": {
+          "mismatched": {
+            "unexpected": [
+              "c_digo_dane_departamento",
+              "coordenadas_de_ubicaci_n",
+              "direcci_n_comisara",
+              "existencia_numeric",
+              "horario_de_atenci_n",
+              "latitud_de_ubicaci_n_de_la",
+              "longitud_de_ubicaci_n_de",
+              "nombre",
+              "nombre_1",
+              "nombre_comisaria",
+              "telefono_de_contacto",
+              "tipo_municipio_isla_rea_no"
+            ]
+          }
+        }
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-RAW2-02",
+      "severity": "Critical",
+      "dimension": "Validity (integration key)",
+      "requirement": "R6, R7",
+      "metric": "Length between 4 and 5 characters for 100% of rows",
+      "expectation": "expect_column_value_lengths_to_be_between",
+      "kwargs": {
+        "column": "c_digo_dane_municipio",
+        "min_value": 4,
+        "max_value": 5
+      },
+      "data_object": "raw_api_batch",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 1249,
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-RAW2-03",
+      "severity": "Warning",
+      "dimension": "Validity (domain)",
+      "requirement": "R7",
+      "metric": "Values outside the Ley 617 set {1-6, ESP} <= 2% (nulls evaluated separately and imputed as 'NO REPORTADA')",
+      "expectation": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "categoria_municipio",
+        "value_set": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "ESP"
+        ],
+        "mostly": 0.98
+      },
+      "data_object": "raw_api_batch",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 1249,
+        "missing_count": 17,
+        "missing_percent": 1.3610888710968776,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-RAW2-04",
+      "severity": "Critical",
+      "dimension": "Validity (range)",
+      "requirement": "R6, R7",
+      "metric": "Installed comisarías >= 0 for 100% of non-null values",
+      "expectation": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "existencia_numeric",
+        "min_value": 0
+      },
+      "data_object": "raw_api_batch",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 1249,
+        "missing_count": 106,
+        "missing_percent": 8.486789431545235,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-RAW2-05",
+      "severity": "Warning",
+      "dimension": "Completeness",
+      "requirement": "R6",
+      "metric": "Null existencia_de_comisarias <= 10%",
+      "expectation": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "existencia_de_comisarias",
+        "mostly": 0.9
+      },
+      "data_object": "raw_api_batch",
+      "success": true,
+      "status": "PASSED",
+      "result": {
+        "element_count": 1249,
+        "unexpected_count": 106,
+        "unexpected_percent": 8.486789431545235,
+        "partial_unexpected_list": [
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN
+        ]
+      },
+      "exception": null
+    }
+  ]
+}
