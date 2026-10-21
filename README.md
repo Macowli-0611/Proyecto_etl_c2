@@ -102,50 +102,7 @@ Evolve the Phase 1 analytical baseline into an automated, observable, and resili
 
 ## 7. System Architecture
 
-```text
-  [Primary Source]                          [API Source]
-Policía Nacional DIJIN                MinJusticia Comisarías
-  (704,551 records)                      (1,249 records)
-          │                                      │
-          ▼                                      ▼
-   extract_primary                         extract_api
-          │                                      │
-          ▼                                      ▼
-[validate_primary_raw]                  [validate_api_raw]
-Great Expectations Gate 1              Great Expectations Gate 2
- (DQ-RAW1-01 to 05)                     (DQ-RAW2-01 to 04)
-          │                                      │
-          └──────────────────┬───────────────────┘
-                             │
-                             ▼
-              [transform_and_clean_and_integrate]
-              - DANE 5-Digit Rollup (DDMMM)
-              - Weapon Harmonisation & Lethality
-              - Demographic Imputation
-              - Geographic Integration Contract
-              - Fact Grain Aggregation (701,714 rows)
-                             │
-                             ▼
-                    [validate_prepared]
-                 Great Expectations Gate 3
-               - Declared Grain Uniqueness
-               - Referential Integrity (0 Orphans)
-               - Exact Measure Reconciliation
-                             │
-                             ▼
-                    [load_dimensional_dw]
-                 PostgreSQL 16 Data Warehouse
-               - Fast Bulk COPY Protocol
-               - Foreign Key & Check Constraints
-               - Semantic Views (vw_bi_hechos_completos)
-                             │
-                             ▼
-                 [BI Analytical Dashboard]
-                 Connected to PostgreSQL DW
-                 Interactive R1–R7 Visualisations
-```
-
-![Architecture Diagram](docs/architecture.png)
+![Architecture Diagram](docs/Pipeline%20Workflow%20ETL-C2.png)
 
 ---
 
@@ -249,9 +206,9 @@ Full profiling evidence generated automatically in [`docs/evidence/profiling_evi
 
 ---
 
-## 13. Refined Dimensional Model and Change Justification
+## 13. Dimensional Modeling
 
-![Star Schema](docs/star_schema.png)
+![Dimensional Modeling](docs/Dimensional%20Modeling%20ETL-C2.png)
 
 ### 13.1 Changes from Delivery 1
 1. **`dim_geografia` Enriched:** Added attributes `categoria_municipio`, `comisarias_instaladas`, `comisarias_requeridas_ley`, `brecha_comisarias`, and `tiene_comisaria`.
