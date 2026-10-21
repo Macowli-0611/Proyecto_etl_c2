@@ -1,7 +1,7 @@
 {
   "test_name": "Test B - Controlled Critical Quality Failure",
-  "execution_timestamp": "2026-10-20T22:53:05.988164",
-  "duration_sec": 1.67,
+  "execution_timestamp": "2026-10-21T17:29:30.418204",
+  "duration_sec": 2.53,
   "overall_status": "PASSED (CONTROLLED_BLOCKING_VERIFIED)",
   "condition_injected": "Removed mandatory schema column 'existencia_de_comisarias' from incoming API batch",
   "violated_rule": "DQ-RAW2-01 (Critical - Schema Completeness)",
@@ -26,7 +26,7 @@
       "critical_failure": true,
       "violated_rule": "DQ-RAW2-01",
       "severity": "Critical",
-      "error_message": "Gate 2 (API Raw Validation) failed with Critical severity. Execution halted to protect downstream tasks."
+      "error_message": "validate_api_raw failed with Critical severity (rules: DQ-RAW2-01, DQ-RAW2-04). Execution halted to protect downstream tasks. Evidence: /Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/docs/evidence/gx_validation_api_raw_20261021_172930.json"
     },
     {
       "task_id": "transform_and_clean_and_integrate",

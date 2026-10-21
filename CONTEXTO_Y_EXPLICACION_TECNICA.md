@@ -100,41 +100,40 @@ Al cruzarlas mediante el código DANE de 5 dígitos, se crearon los nuevos indic
 
 ---
 
-## 4. El Dashboard Analítico: ¿Cómo se Hizo y por qué no solo en Power BI?
+## 4. El Producto Analítico y de Business Intelligence (Power BI Desktop)
 
-### 4.1 ¿Por qué se Desarrolló un Dashboard Web Nativo?
-En la Primera Entrega, el producto analítico fue un archivo local de Power BI Desktop (`.pbix`). Aunque Power BI es potente para análisis exploratorio en estaciones Windows, presentaba tres limitaciones operacionales críticas para una arquitectura de ingeniería de datos moderna:
-1. **Falta de Portabilidad y Dependencia de Software Propietario:** Un archivo `.pbix` requiere tener instalado Power BI Desktop (disponible únicamente para Windows). Un evaluador o profesor en macOS o Linux no puede ejecutarlo directamente sin máquinas virtuales.
-2. **Desconexión del Pipeline Automatizado:** En Power BI Desktop, los refrescos no se pueden disparar fácilmente por línea de comandos ni integrarse de forma desacoplada con contenedores Docker en un solo script reproducible.
-3. **Pliego Flexible del PDF:** La Sección 18 y 26 del pliego especifica textualmente:
-   > *"Analytical Product: Dashboard connected to the Data Warehouse with R6–R7 outputs and API-integration value... It may be built with Power BI, Tableau, Metabase, Superset, Streamlit, or a custom web dashboard connected to PostgreSQL/MySQL."*
+### 4.1 Arquitectura del Dashboard de Business Intelligence
+Para la Segunda Entrega, el producto analítico final se estructuró a través de un modelo semántico en **Power BI Desktop**, alojado en [`docs/powerbi/Dashboard-Poryecto2.pbix`](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/docs/powerbi/Dashboard-Poryecto2.pbix) y conectado directamente al Data Warehouse relacional **PostgreSQL 16** (`etl_dw`).
 
-Por esta razón, se construyó una **aplicación web interactiva completa (HTML5, Vanilla CSS moderno y Chart.js)** servida por un servidor Python integrado, complementada con la base de datos PostgreSQL lista para recibir conexiones de Power BI si el usuario lo prefiere.
+A diferencia de modelos desconectados o basados en archivos locales sueltos, el reporte se alimenta en modo **Import** mediante el conector nativo de PostgreSQL contra las tablas dimensionales y vistas semánticas optimizadas:
+- `fact_violencia_intrafamiliar`
+- `dim_tiempo`, `dim_geografia`, `dim_victima`, `dim_medio`, `dim_comisaria`
+- `vw_r6_sobrecarga_comisarias` y `vw_r7_prioridad_intervencion`
 
-### 4.2 Arquitectura y Componentes del Dashboard (`dashboard/`)
-El dashboard analítico se compone de:
-1. **Frontend con Estética Glassmorphism y Dark Mode (`dashboard/index.html` y `styles.css`):**
-   - Paleta de colores sobria y profesional (fondos oscuros `#0b0f19`, tarjetas translúcidas con desenfoque `backdrop-filter: blur(12px)`, tipografía moderna Inter de Google Fonts).
-   - Diseño completamente responsive (adaptable a pantallas de escritorio, laptops y tablets).
-2. **Capa Visual Interactiva (`dashboard/app.js` con Chart.js 4.4):**
-   - **KPI Cards Dinámicas:** Total de víctimas (1.501.809), denuncias (704.551), municipios (1.113) y la **Brecha Nacional de Comisarías (114 comisarías faltantes)**.
-   - **Gráficos R1 a R5:** Línea de tendencia histórica 2010–2025 (R1), dona de proporción de género 77% mujeres (R3) y barras horizontales de mecanismos de agresión (R4).
-   - **Gráficos de Integración de la API (R6 y R7):**
-     * **Gráfico R6 (Barras de Sobrecarga Institucional):** Muestra el Top 10 de municipios con mayor tasa de víctimas por comisaría (encabezados por Cúcuta con 20.389 víctimas/comisaría y Popayán con 17.070).
-     * **Gráfico R7 (Dispersión de Prioridad de Intervención):** Cruza en el eje X la brecha legal de comisarías faltantes y en el eje Y la cantidad de menores atacados con armas letales, ubicando en el cuadrante de **Prioridad 1 Urgente** a Cúcuta (brecha de 8 y 51 menores atacados).
-   - **Tabla Interactiva de Municipios Críticos:** Permite ordenar territorios por nivel de presión operativa y ver el teléfono y horario de atención de sus comisarías.
-3. **Servidor HTTP Local (`dashboard/server.py`):**
-   - Servidor ligero basado en `http.server` de Python sin dependencias externas pesadas de Node ni configuraciones complejas.
-   - Se ejecuta con: `python3 dashboard/server.py` y se abre de inmediato en `http://localhost:8080`.
-4. **Capa Semántica y Conexión al Data Warehouse (`dashboard/export_dw_data.py`):**
-   - Extrae directamente de las vistas de PostgreSQL (`vw_bi_hechos_completos`, `vw_bi_presion_institucional`, `vw_bi_brecha_riesgo_menores`) la agregación optimizada y la sincroniza en `dashboard/data_dw.json`.
+### 4.2 Medidas DAX Principales y Controles de Reconciliación
+El reporte implementa medidas DAX estandarizadas que reproducen con precisión exacta los totales de control del Data Warehouse:
+* **Total Víctimas:** `1.501.809` (coincidencia exacta al centésimo con la fuente cruda).
+* **Total Reportes:** `704.551` denuncias penales procesadas.
+* **Menores en Riesgo Letal:** `3.035` víctimas menores atacadas con armas letales (R5).
+* **Brecha Nacional Ley 2126:** `114` comisarías de familia faltantes en el territorio nacional (R7).
+* **Tasa de Víctimas por Comisaría (R6):** Revela la sobrecarga crítica en municipios intermedios (ej. Cúcuta con 20.389 víctimas/comisaría y Popayán con 17.070).
 
-### 4.3 ¿Y si el Evaluador Quiere Conectar Power BI?
-El Data Warehouse en PostgreSQL 16 está activo en el puerto `5432`. Si un evaluador desea abrir Power BI Desktop, puede conectarse en 2 clics:
-- **Servidor:** `localhost:5432`
-- **Base de Datos:** `etl_dw`
+### 4.3 Visualizaciones y Evidencias por Requerimiento (R1 a R7)
+Para garantizar accesibilidad y evaluación independiente en cualquier sistema operativo (macOS, Linux o Windows sin Power BI instalado), se exportaron capturas de alta resolución de cada visual a `docs/powerbi/`:
+1. **R1 (Evolución Anual 2010–2025):** [`r1_evolucion_anual.png`](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/docs/powerbi/r1_evolucion_anual.png) (Área con exclusión del año parcial 2026).
+2. **R2 (Ranking Territorial y Capitales):** [`r2_departamentos.png`](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/docs/powerbi/r2_departamentos.png) (Treemap con drill-down a municipios; 63.99% en capitales).
+3. **R3 (Distribución por Género):** [`r3_genero.png`](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/docs/powerbi/r3_genero.png) (Gráfico de dona; 77.33% mujeres).
+4. **R4 (Mecanismos y Armas):** [`r4_mecanismos.png`](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/docs/powerbi/r4_mecanismos.png) (Embudo de armas contundentes, blancas y de fuego).
+5. **R5 (Menores Agredidos con Armas Letales):** [`r5_mapa_menores.png`](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/docs/powerbi/r5_mapa_menores.png) (Mapa de burbujas georreferenciado).
+6. **R6 (Sobrecarga Institucional por Comisaría):** [`r6_sobrecarga.png`](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/docs/powerbi/r6_sobrecarga.png) (Top 10 de sobrecarga por comisaría instalada).
+7. **R7 (Matriz de Prioridad de Intervención Ley 2126):** [`r7_prioridad.png`](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/docs/powerbi/r7_prioridad.png) (Dispersión: Brecha Legal vs Violencia Letal Infantil).
+8. **Diagrama Completo del Tablero:** [`Full Diagram - Domestic Violence.jpg`](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/docs/Full%20Diagram%20-%20Domestic%20Violence.jpg)
+
+### 4.4 Conexión al Data Warehouse desde Cualquier Cliente SQL o BI
+El Data Warehouse en PostgreSQL 16 está expuesto en el puerto `5432`:
+- **Servidor:** `localhost:5432` | **Base de Datos:** `etl_dw`
 - **Usuario:** `postgres` | **Contraseña:** `postgres123`
-- **Vistas recomendadas para importar:** `vw_r6_sobrecarga_comisarias` y `vw_r7_prioridad_intervencion`.
+- **Vistas recomendadas para análisis:** `vw_r6_sobrecarga_comisarias` y `vw_r7_prioridad_intervencion`.
 
 ---
 
@@ -249,15 +248,13 @@ El script `src/run_pipeline.py` ejecuta y documenta las tres pruebas obligatoria
 | :--- | :--- | :--- | :--- |
 | **Python** | 3.13 / 3.11 | Lenguaje principal del sistema | Ecosistema líder en Data Engineering, compatibilidad nativa con GX, Airflow y Pandas. |
 | **PostgreSQL** | 16 (Alpine) | Motor de Data Warehouse | Base de datos relacional robusta con soporte para streaming `COPY`, llaves foráneas estrictas y vistas analíticas optimizadas. |
-| **Docker & Docker Compose** | 29.4+ | Contenerización de infraestructura | Garantiza reproducibilidad de entorno del Data Warehouse en cualquier máquina host con un único comando. |
-| **Great Expectations** | 1.24.0 | Validación de calidad automatizada | Estándar de la industria para compuertas de calidad declarativas (GX 1.X Fluent API). |
-| **Apache Airflow** | 3.3.2 | Orquestación de flujos de trabajo | Orquestador líder. Permite modelar dependencias DAG, reintentos selectivos y observabilidad de estado. |
+| **Docker & Docker Compose** | 29.4+ | Contenerización de infraestructura | Garantiza reproducibilidad de entorno del Data Warehouse y Airflow con un único comando. |
+| **Great Expectations** | 1.24.0 | Validación de calidad automatizada | Estándar de la industria para compuertas de calidad declarativas (GX 1.X Fluent API, Checkpoints y Suites JSON). |
+| **Apache Airflow** | 3.1.8 (Docker) / 3.3.2 (Local) | Orquestación de flujos de trabajo | Orquestador líder. Permite modelar dependencias DAG, Task SDK (`airflow.sdk`), reintentos selectivos y observabilidad. |
 | **Pandas & NumPy** | 2.2+ / 2.0+ | Transformación y normalización | Procesamiento vectorial eficiente en memoria para datasets de tamaño medio (700k filas). |
 | **PyArrow** | 15.0+ | Persistencia intermedia (Parquet) | Formato columnar comprimido con preservación estricta de tipos de datos para la capa procesada. |
-| **psycopg2-binary** | 2.9.12 | Conector nativo de PostgreSQL | Permite el uso del protocolo de streaming `COPY ... FROM STDIN WITH (FORMAT CSV)`, cargando 700k registros en 16 segundos. |
-| **HTML5 & Vanilla CSS** | W3C Modern | Interfaz de usuario del Dashboard | Arquitectura web ligera sin dependencias pesadas de Node/npm, con estética Glassmorphism, Dark Mode y responsive layout. |
-| **Chart.js** | 4.4.1 | Visualizaciones interactivas | Gráficos dinámicos de series de tiempo, barras apiladas, donas y dispersión para R1–R7. |
-| **Matplotlib** | 3.10.9 | Generación de diagramas técnicos | Creación programática de los diagramas de arquitectura del sistema y del modelo estrella relacional. |
+| **psycopg2-binary** | 2.9.12 | Conector nativo de PostgreSQL | Permite el uso del protocolo de streaming `COPY ... FROM STDIN WITH (FORMAT CSV)`, cargando 700k registros en 16 segundos con transacción atómica. |
+| **Power BI Desktop** | 2.128+ | Capa de Business Intelligence | Modelo estrella conectado a PostgreSQL para navegación interactiva de R1–R7, KPIs y matrices de intervención. |
 | **Jupyter & nbclient** | 7.3+ / 0.11+ | Notebook reproducible | Documentación viva del perfilamiento y validación con celdas ejecutadas y salidas persistidas. |
 
 ---
@@ -268,38 +265,44 @@ El script `src/run_pipeline.py` ejecuta y documenta las tres pruebas obligatoria
 Proyecto_etl_C2/
 ├── .env.example                       # Plantilla de variables de entorno seguras
 ├── .gitignore                         # Exclusión de artefactos, pycache y temporales
-├── Dockerfile                         # Contenedor para ejecución reproducible del pipeline
+├── Dockerfile                         # Contenedor para ejecución reproducible del pipeline y Airflow
 ├── docker-compose.yaml                # Orquestación de PostgreSQL 16 y Apache Airflow 3.1.8
 ├── requirements.txt                   # Dependencias fijadas (GX, Airflow, Pandas, etc.)
 ├── README.md                          # Documentación maestra con las 26 secciones de la rúbrica
 ├── CONTEXTO_Y_EXPLICACION_TECNICA.md  # Este documento de contexto técnico detallado
+├── config/
+│   └── simple_auth_manager_passwords.json # Credenciales de desarrollo para Airflow Web UI
 ├── dags/
-│   └── etl_violencia_intrafamiliar_dag.py  # DAG de Airflow 3.1.8 con Task SDK y reintentos selectivos
+│   └── etl_violencia_intrafamiliar_dag.py # DAG de Airflow 3.1.8 con Task SDK y reintentos selectivos
 ├── gx/                                # Infraestructura Great Expectations 1.X
 │   ├── gx_config.yaml                 # Configuración global y manifiesto de calidad
 │   ├── README_GX.md                   # Matriz de trazabilidad y documentación de suites
 │   ├── expectations/                  # Expectation Suites JSON (Gates 1, 2 y 3)
 │   ├── checkpoints/                   # Checkpoints declarativos de ejecución
 │   └── validation_definitions/        # Definiciones de validación por dataset
-├── dashboard/
-│   ├── index.html                     # Frontend Glassmorphism / Dark Mode
-│   ├── styles.css                     # Estilos visuales de alto impacto
-│   ├── app.js                         # Lógica cliente y gráficos Chart.js
-│   ├── data_dw.json                   # Datos analíticos agregados del DW
-│   ├── export_dw_data.py              # Exportador automatizado desde PostgreSQL
-│   └── server.py                      # Servidor HTTP local embebido
 ├── data/
 │   ├── raw/                           # Datasets brutos (fuente primaria y API)
 │   └── processed/                     # Datos limpios y enriquecidos en formato Parquet
 ├── docs/
-│   ├── architecture.png               # Diagrama arquitectónico generado
-│   ├── star_schema.png                # Diagrama entidad-relación del modelo estrella
-│   ├── generate_diagrams.py           # Generador programático de diagramas
+│   ├── Pipeline Workflow ETL-C2.png   # Diagrama de flujo del pipeline de datos
+│   ├── Dimensional Modeling ETL-C2.png# Diagrama del modelo estrella relacional
+│   ├── Full Diagram - Domestic Violence.jpg # Diagrama completo de arquitectura
+│   ├── powerbi/                       # Archivo .pbix y capturas de alta resolución R1 a R7
+│   │   ├── Dashboard-Poryecto2.pbix   # Archivo de Power BI conectado al DW
+│   │   ├── r1_evolucion_anual.png     # Visual R1
+│   │   ├── r2_departamentos.png       # Visual R2
+│   │   ├── r3_genero.png              # Visual R3
+│   │   ├── r4_mecanismos.png          # Visual R4
+│   │   ├── r5_mapa_menores.png        # Visual R5
+│   │   ├── r6_sobrecarga.png          # Visual R6
+│   │   └── r7_prioridad.png           # Visual R7
 │   └── evidence/                      # Evidencias de ejecución y perfilamiento
 │       ├── profiling_evidence.json    # Resultados estadísticos de ambas fuentes
-│       ├── test_a_success.json        # Evidencia de ejecución exitosa
-│       ├── test_b_controlled_failure.json  # Evidencia de falla controlada
-│       └── test_c_safe_rerun.json     # Evidencia de idempotencia (Deltas = 0)
+│       ├── reconciliation_report.json # Reporte de reconciliación exacta del DW
+│       ├── test_a_successful_run.json # Evidencia de ejecución exitosa
+│       ├── test_b_controlled_failure.json # Evidencia de falla controlada
+│       ├── test_c_safe_rerun.json     # Evidencia de idempotencia (Deltas = 0)
+│       └── gx_validation_*_latest.json# Evidencias de auditoría Great Expectations
 ├── notebooks/
 │   └── profiling_and_validation.ipynb # Notebook ejecutable con outputs persistidos
 ├── sql/
@@ -313,6 +316,6 @@ Proyecto_etl_C2/
     ├── transform_and_integrate.py     # Limpieza, normalización DANE y cruce
     ├── dimensional_model.py           # Generación de dimensiones y hechos
     ├── validate_gx.py                 # Great Expectations 1.X (Gates 1, 2 y 3)
-    ├── load_dw.py                     # Streaming COPY y reconciliación exacta
+    ├── load_dw.py                     # Streaming COPY atómico y reconciliación exacta
     └── run_pipeline.py                # Ejecutor de las 3 pruebas de confiabilidad
 ```

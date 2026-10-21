@@ -1,16 +1,41 @@
 {
   "gate": "validate_primary_raw",
   "suite_name": "primary_raw_suite",
-  "timestamp": "2026-10-21T04:39:12.970416",
+  "suite_file": "gx/expectations/primary_raw_suite.json",
+  "batch_id": null,
+  "timestamp": "2026-10-21T17:29:31.433205",
   "total_records": 704551,
+  "rules_evaluated": 6,
   "overall_success": true,
   "critical_failure": false,
+  "failed_critical_rules": [],
+  "failed_warning_rules": [],
+  "pipeline_action": "CONTINUE: all rules passed.",
   "results": [
     {
+      "rule_id": "DQ-RAW1-01",
+      "severity": "Critical",
+      "dimension": "Completeness (schema)",
+      "requirement": "R1-R5",
+      "metric": "Missing mandatory columns = 0",
       "expectation": "expect_table_columns_to_match_set",
-      "notes": "DQ-RAW1-01: Critical. Verifies mandatory schema columns exist.",
+      "kwargs": {
+        "column_set": [
+          "DEPARTAMENTO",
+          "MUNICIPIO",
+          "CODIGO DANE",
+          "ARMAS MEDIOS",
+          "FECHA HECHO",
+          "GENERO",
+          "GRUPO ETARIO",
+          "CANTIDAD"
+        ],
+        "exact_match": false
+      },
+      "data_object": "raw_primary_batch",
       "success": true,
-      "result_details": {
+      "status": "PASSED",
+      "result": {
         "observed_value": [
           "ARMAS MEDIOS",
           "CANTIDAD",
@@ -29,47 +54,121 @@
             ]
           }
         }
-      }
+      },
+      "exception": null
     },
     {
-      "expectation": "expect_column_values_to_be_between",
-      "notes": "DQ-RAW1-04: Critical. Measure CANTIDAD must be >= 1.",
+      "rule_id": "DQ-RAW1-02",
+      "severity": "Critical",
+      "dimension": "Validity (format)",
+      "requirement": "R1",
+      "metric": "Values matching DD/MM/YYYY = 100%",
+      "expectation": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "FECHA HECHO",
+        "regex": "^\\s*\\d{1,2}/\\d{1,2}/\\d{4}\\s*$"
+      },
+      "data_object": "raw_primary_batch",
       "success": true,
-      "result_details": {
+      "status": "PASSED",
+      "result": {
         "element_count": 704551,
-        "unexpected_count": 0,
-        "unexpected_percent": 0.0,
-        "partial_unexpected_list": [],
         "missing_count": 0,
         "missing_percent": 0.0,
-        "unexpected_percent_total": 0.0,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
         "unexpected_percent_nonmissing": 0.0,
-        "partial_unexpected_counts": [],
-        "partial_unexpected_index_list": []
-      }
+        "partial_unexpected_list": []
+      },
+      "exception": null
     },
     {
+      "rule_id": "DQ-RAW1-03",
+      "severity": "Critical",
+      "dimension": "Validity (format)",
+      "requirement": "R2, R5, R6, R7",
+      "metric": "Length = 8 characters for 100% of rows",
       "expectation": "expect_column_value_lengths_to_be_between",
-      "notes": "DQ-RAW1-03: Critical. DANE code must be 8-digit string.",
+      "kwargs": {
+        "column": "CODIGO DANE",
+        "min_value": 8,
+        "max_value": 8
+      },
+      "data_object": "raw_primary_batch",
       "success": true,
-      "result_details": {
+      "status": "PASSED",
+      "result": {
+        "element_count": 704551,
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-RAW1-04",
+      "severity": "Critical",
+      "dimension": "Validity (type)",
+      "requirement": "R1-R7",
+      "metric": "Non-numeric or missing CANTIDAD = 0",
+      "expectation": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "CANTIDAD_NUMERIC"
+      },
+      "data_object": "raw_primary_batch",
+      "success": true,
+      "status": "PASSED",
+      "result": {
         "element_count": 704551,
         "unexpected_count": 0,
         "unexpected_percent": 0.0,
-        "partial_unexpected_list": [],
-        "missing_count": 0,
-        "missing_percent": 0.0,
-        "unexpected_percent_total": 0.0,
-        "unexpected_percent_nonmissing": 0.0,
-        "partial_unexpected_counts": [],
-        "partial_unexpected_index_list": []
-      }
+        "partial_unexpected_list": []
+      },
+      "exception": null
     },
     {
-      "expectation": "expect_column_values_to_not_be_null",
-      "notes": "DQ-RAW1-05: Warning. Null gender must not exceed 1%.",
+      "rule_id": "DQ-RAW1-04",
+      "severity": "Critical",
+      "dimension": "Validity (range)",
+      "requirement": "R1-R7",
+      "metric": "CANTIDAD >= 1 for 100% of rows",
+      "expectation": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "CANTIDAD_NUMERIC",
+        "min_value": 1
+      },
+      "data_object": "raw_primary_batch",
       "success": true,
-      "result_details": {
+      "status": "PASSED",
+      "result": {
+        "element_count": 704551,
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_list": []
+      },
+      "exception": null
+    },
+    {
+      "rule_id": "DQ-RAW1-05",
+      "severity": "Warning",
+      "dimension": "Completeness",
+      "requirement": "R3",
+      "metric": "Null GENERO <= 1.0%",
+      "expectation": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "GENERO",
+        "mostly": 0.99
+      },
+      "data_object": "raw_primary_batch",
+      "success": true,
+      "status": "PASSED",
+      "result": {
         "element_count": 704551,
         "unexpected_count": 3379,
         "unexpected_percent": 0.479596225113583,
@@ -83,47 +182,10 @@
           NaN,
           NaN,
           NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN,
-          NaN,
           NaN
-        ],
-        "partial_unexpected_counts": [
-          {
-            "value": NaN,
-            "count": 20
-          }
-        ],
-        "partial_unexpected_index_list": [
-          7,
-          33,
-          42,
-          83,
-          115,
-          147,
-          248,
-          301,
-          380,
-          391,
-          402,
-          420,
-          441,
-          514,
-          652,
-          697,
-          738,
-          781,
-          805,
-          850
         ]
-      }
+      },
+      "exception": null
     }
   ]
 }

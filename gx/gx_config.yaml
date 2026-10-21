@@ -93,6 +93,11 @@ gates:
         dimension: "Validity & Range"
         requirement: "R6, R7"
         description: "Verified comisarías count must be non-negative."
+      - rule_id: "DQ-RAW2-05"
+        severity: "Warning"
+        dimension: "Completeness"
+        requirement: "R6"
+        description: "Missingness in existencia_de_comisarias must not exceed 10%."
 
   gate_3:
     name: "validate_prepared"
@@ -127,3 +132,8 @@ gates:
         dimension: "Accuracy & Reconciliation"
         requirement: "All"
         description: "Loaded victim count and record count reconcile exactly with extract manifests."
+      - rule_id: "DQ-PREP-06"
+        severity: "Warning"
+        dimension: "Integration Coverage"
+        requirement: "R6, R7"
+        description: "Cross-source municipality matching coverage must be >= 98%."

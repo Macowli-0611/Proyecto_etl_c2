@@ -1,7 +1,7 @@
 {
   "test_name": "Test C - Safe Rerun & Repeatability",
-  "execution_timestamp": "2026-10-20T22:53:54.558487",
-  "duration_sec": 48.57,
+  "execution_timestamp": "2026-10-21T17:29:52.733494",
+  "duration_sec": 22.31,
   "idempotency_strategy": "Atomic Transactional DDL Recreate & COPY with Grain Unique Constraint (uq_fact_grano)",
   "snapshot_before_rerun": {
     "fact_rows": 701714,

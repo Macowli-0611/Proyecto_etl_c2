@@ -1,7 +1,7 @@
-# Dockerfile for Second Delivery ETL Pipeline Environment
+# Dockerfile for Second Delivery ETL Pipeline & Airflow Environment
 FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /opt/airflow
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -19,7 +19,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Set environment variables
-ENV PYTHONPATH=/app
+ENV AIRFLOW_HOME=/opt/airflow
+ENV PYTHONPATH=/opt/airflow
 ENV PYTHONUNBUFFERED=1
 
 CMD ["python", "src/run_pipeline.py"]

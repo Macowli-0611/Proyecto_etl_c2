@@ -48,20 +48,21 @@ def get_db_connection():
     )
 
 
-def execute_sql_file(filepath: str, conn):
-    """Reads and executes a SQL script file."""
+def execute_sql_file(filepath: str, conn, auto_commit: bool = False):
+    """Reads and executes a SQL script file within the caller's transaction."""
     logger.info("Executing SQL file: %s", filepath)
     with open(filepath, "r", encoding="utf-8") as f:
         sql = f.read()
     with conn.cursor() as cur:
         cur.execute(sql)
-    conn.commit()
+    if auto_commit:
+        conn.commit()
 
 
 import csv
 
-def bulk_copy_dataframe(df: pd.DataFrame, table_name: str, conn):
-    """Fast bulk insert using PostgreSQL COPY protocol with CSV format and quoting."""
+def bulk_copy_dataframe(df: pd.DataFrame, table_name: str, conn, auto_commit: bool = False):
+    """Fast bulk insert using PostgreSQL COPY protocol within the caller's transaction."""
     logger.info("Bulk copying %d rows into %s...", len(df), table_name)
     df_clean = df.copy()
     # Clean whitespace/newlines from string columns to avoid copy format corruptions
@@ -76,7 +77,8 @@ def bulk_copy_dataframe(df: pd.DataFrame, table_name: str, conn):
     sql_copy = f"COPY {table_name} ({', '.join(cols)}) FROM STDIN WITH (FORMAT CSV, NULL '')"
     with conn.cursor() as cur:
         cur.copy_expert(sql_copy, buffer)
-    conn.commit()
+    if auto_commit:
+        conn.commit()
     logger.info("Completed COPY into %s.", table_name)
 
 
@@ -84,38 +86,42 @@ def load_dimensional_warehouse(
     tables: Dict[str, pd.DataFrame],
     expected_totals: Dict[str, int]
 ) -> Dict[str, Any]:
-    """Loads all dimensions and facts into PostgreSQL and verifies reconciliation.
+    """Loads all dimensions and facts into PostgreSQL in a single atomic transaction.
 
     Execution order:
-      1. dim_tiempo
-      2. dim_geografia
-      3. dim_victima
-      4. dim_medio
-      5. dim_comisaria
-      6. fact_violencia_intrafamiliar
+      1. Schema DDL re-creation (create_dw.sql)
+      2. dim_tiempo
+      3. dim_geografia
+      4. dim_victima
+      5. dim_medio
+      6. dim_comisaria
+      7. fact_violencia_intrafamiliar
+      8. Semantic Views (bi_views.sql)
+      9. Automated Reconciliation & Foreign Key orphan check
+      10. Atomic COMMIT on 100% success; ROLLBACK on any failure.
     """
     os.makedirs(EVIDENCE_DIR, exist_ok=True)
     logger.info("Connecting to PostgreSQL Data Warehouse (%s:%d/%s)...", DB_HOST, DB_PORT, DB_NAME)
     conn = get_db_connection()
 
     try:
-        # Step 1: Re-create schema DDL
+        # Step 1: Re-create schema DDL (Atomic Transaction)
         ddl_path = os.path.join(SQL_DIR, "create_dw.sql")
-        execute_sql_file(ddl_path, conn)
+        execute_sql_file(ddl_path, conn, auto_commit=False)
 
         # Step 2: Load Dimensions first (Referential Integrity)
-        bulk_copy_dataframe(tables["dim_tiempo"], "dim_tiempo", conn)
-        bulk_copy_dataframe(tables["dim_geografia"], "dim_geografia", conn)
-        bulk_copy_dataframe(tables["dim_victima"], "dim_victima", conn)
-        bulk_copy_dataframe(tables["dim_medio"], "dim_medio", conn)
-        bulk_copy_dataframe(tables["dim_comisaria"], "dim_comisaria", conn)
+        bulk_copy_dataframe(tables["dim_tiempo"], "dim_tiempo", conn, auto_commit=False)
+        bulk_copy_dataframe(tables["dim_geografia"], "dim_geografia", conn, auto_commit=False)
+        bulk_copy_dataframe(tables["dim_victima"], "dim_victima", conn, auto_commit=False)
+        bulk_copy_dataframe(tables["dim_medio"], "dim_medio", conn, auto_commit=False)
+        bulk_copy_dataframe(tables["dim_comisaria"], "dim_comisaria", conn, auto_commit=False)
 
         # Step 3: Load Fact Table
-        bulk_copy_dataframe(tables["fact_violencia_intrafamiliar"], "fact_violencia_intrafamiliar", conn)
+        bulk_copy_dataframe(tables["fact_violencia_intrafamiliar"], "fact_violencia_intrafamiliar", conn, auto_commit=False)
 
         # Step 4: Create Semantic Views
         views_path = os.path.join(SQL_DIR, "bi_views.sql")
-        execute_sql_file(views_path, conn)
+        execute_sql_file(views_path, conn, auto_commit=False)
 
         # Step 5: Post-Load SQL Reconciliation & Integrity Checks
         logger.info("Executing automated database reconciliation and integrity verification...")
@@ -208,9 +214,18 @@ def load_dimensional_warehouse(
         )
 
         if not (reconciled and integrity_ok):
+            conn.rollback()
             raise ValueError(f"DW load reconciliation or referential integrity failed! Check {report_path}")
 
+        # Atomic commit of the entire load transaction
+        conn.commit()
+        logger.info("Atomic transaction COMMITTED successfully. Data Warehouse is fully consistent.")
         return reconciliation_report
+
+    except Exception as e:
+        conn.rollback()
+        logger.error("Transaction ROLLED BACK due to error during DW load: %s", e)
+        raise e
 
     finally:
         conn.close()

@@ -1,99 +1,94 @@
 {
   "name": "api_raw_suite",
-  "description": "Gate 2: Validación cruda de API (MinJusticia Comisarías de Familia - SODA REST API)",
+  "description": "Gate 2: Raw validation of the API source (MinJusticia - Comisarías de Familia, SODA REST API), evaluated on the normalized raw JSON payload BEFORE any business transformation.",
   "meta": {
     "great_expectations_version": "1.24.0",
     "gate": "validate_api_raw",
     "suite_name": "api_raw_suite",
-    "source": "Ministerio de Justicia y del Derecho / datos.gov.co",
-    "target_table": "raw_api_comisarias_familia",
+    "data_object": "Raw SODA payload data/raw/api_comisarias_raw.json normalized to a tabular frame (text values, missing keys kept as null)",
+    "source": "Ministerio de Justicia y del Derecho / datos.gov.co (resource 7tuu-upb2)",
+    "derived_evaluation_columns": {
+      "existencia_numeric": "pd.to_numeric(existencia_de_comisarias, errors='coerce'). Type cast used ONLY for evaluation; the raw payload is not modified."
+    },
     "academic_requirements": "R6, R7"
   },
   "expectations": [
     {
       "type": "expect_table_columns_to_match_set",
       "kwargs": {
-        "column_set": [
-          "c_digo_dane_municipio",
-          "categoria_municipio",
-          "existencia_de_comisarias",
-          "comisarias_ley_2126_100_000"
-        ],
+        "column_set": ["c_digo_dane_municipio", "categoria_municipio", "existencia_de_comisarias", "comisarias_ley_2126_100_000"],
         "exact_match": false
       },
       "meta": {
         "rule_id": "DQ-RAW2-01",
         "severity": "Critical",
         "requirement": "R6, R7",
-        "dimension": "Completeness",
-        "metric": "Missing mandatory columns == 0",
-        "description": "Mandatory API schema attributes must exist in incoming payload."
-      },
-      "notes": "DQ-RAW2-01: Critical. Mandatory API schema attributes must exist."
+        "dimension": "Completeness (schema)",
+        "metric": "Missing mandatory attributes = 0",
+        "threshold_justification": "Contractual: these 4 attributes are the integration key and the only API inputs to R6 (installed comisarías) and R7 (Ley 2126 requirement, category). Without any of them R6/R7 cannot be computed, so zero tolerance."
+      }
     },
     {
       "type": "expect_column_value_lengths_to_be_between",
       "kwargs": {
         "column": "c_digo_dane_municipio",
         "min_value": 4,
-        "max_value": 5,
-        "mostly": 0.99
+        "max_value": 5
       },
       "meta": {
         "rule_id": "DQ-RAW2-02",
         "severity": "Critical",
         "requirement": "R6, R7",
-        "dimension": "Validity",
-        "metric": "DANE length between 4 and 5 characters for >= 99%",
-        "description": "API DANE municipal code length must be between 4 and 5 characters."
-      },
-      "notes": "DQ-RAW2-02: Critical. API DANE code length must be between 4 and 5 characters."
-    },
-    {
-      "type": "expect_column_values_to_be_between",
-      "kwargs": {
-        "column": "existencia_numeric",
-        "min_value": 0,
-        "mostly": 0.90
-      },
-      "meta": {
-        "rule_id": "DQ-RAW2-04",
-        "severity": "Critical",
-        "requirement": "R6, R7",
-        "dimension": "Validity & Range",
-        "metric": "Existing comisarías count >= 0 for >= 90%",
-        "description": "Verified comisarías count must be non-negative."
-      },
-      "notes": "DQ-RAW2-04: Critical. Existing comisarías count must be non-negative."
+        "dimension": "Validity (integration key)",
+        "metric": "Length between 4 and 5 characters for 100% of rows",
+        "threshold_justification": "Integration contract: the documented normalization is zfill(5), which is only correct for 4-digit codes that lost their leading zero (profiling: 194 rows) and 5-digit codes. Any other length would produce a wrong municipal key and a silent mis-join, so no tolerance."
+      }
     },
     {
       "type": "expect_column_values_to_be_in_set",
       "kwargs": {
         "column": "categoria_municipio",
-        "value_set": [
-          "1",
-          "2",
-          "3",
-          "4",
-          "5",
-          "6",
-          "ESP",
-          "Especial",
-          "None",
-          null,
-          ""
-        ],
-        "mostly": 0.95
+        "value_set": ["1", "2", "3", "4", "5", "6", "ESP"],
+        "mostly": 0.98
       },
       "meta": {
         "rule_id": "DQ-RAW2-03",
         "severity": "Warning",
         "requirement": "R7",
-        "dimension": "Domain Validity",
-        "metric": "Unexpected municipal category values <= 2%",
-        "description": "Municipal statutory category belongs to statutory set (1–6, ESP, Especial)."
+        "dimension": "Validity (domain)",
+        "metric": "Values outside the Ley 617 set {1-6, ESP} <= 2% (nulls evaluated separately and imputed as 'NO REPORTADA')",
+        "threshold_justification": "Legal domain (Ley 617 de 2000). Category is only a drill-down attribute of R7; it does not change any measure. Up to 2% (about 25 of ~1,250 entries) unexpected labels can be shown as an 'other' bucket without altering the R7 priority ranking, so the batch continues with a recorded warning."
+      }
+    },
+    {
+      "type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "existencia_numeric",
+        "min_value": 0
       },
-      "notes": "DQ-RAW2-03: Warning. Municipal category domain validity."
+      "meta": {
+        "rule_id": "DQ-RAW2-04",
+        "severity": "Critical",
+        "requirement": "R6, R7",
+        "dimension": "Validity (range)",
+        "metric": "Installed comisarías >= 0 for 100% of non-null values",
+        "threshold_justification": "Business rule: a count of facilities cannot be negative. A negative value would inflate the Ley 2126 gap (R7) and produce a negative or infinite workload ratio (R6)."
+      }
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "existencia_de_comisarias",
+        "mostly": 0.90
+      },
+      "meta": {
+        "rule_id": "DQ-RAW2-05",
+        "severity": "Warning",
+        "requirement": "R6",
+        "dimension": "Completeness",
+        "metric": "Null existencia_de_comisarias <= 10%",
+        "threshold_justification": "Each API row is one listed comisaría, so a null count is imputed as 1 (the row itself). This assumption is acceptable while it affects a small minority of rows; above 10% the R6 denominator would be driven by the imputation rather than by the source, so the condition must be made visible. Observed baseline: 8.5% (106 of 1,249)."
+      }
     }
   ]
 }

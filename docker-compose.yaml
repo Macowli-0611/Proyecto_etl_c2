@@ -22,6 +22,9 @@ services:
   # Apache Airflow 3.1.8 Web UI & Orchestrator
   airflow:
     image: workshop2-airflow:3.1.8
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: etl_c2_airflow
     depends_on:
       postgres_dw:

@@ -126,18 +126,41 @@ Full profiling evidence is generated automatically in [`docs/evidence/profiling_
 | :---: | :---: | :--- | :--- | :--- | :--- | :---: | :---: |
 | **DQ-RAW1-01** | Raw Primary | Schema / Columns | Completeness | Mandatory columns must exist in the raw extract. | Missing columns = 0 | **Critical** | R1–R5 |
 | **DQ-RAW1-02** | Raw Primary | `FECHA HECHO` | Validity & Format | Incident date matches the `DD/MM/YYYY` format. | Parseable = 100% | **Critical** | R1 |
-| **DQ-RAW1-03** | Raw Primary | `CODIGO DANE` | Format & Length | DANE code is an 8-character string. | Length == 8 for >= 99.99% | **Critical** | R2, R5 |
-| **DQ-RAW1-04** | Raw Primary | `CANTIDAD` | Validity & Range | Measure `CANTIDAD` must be a positive integer >= 1. | Value >= 1 for 100% | **Critical** | R1–R5 |
+| **DQ-RAW1-03** | Raw Primary | `CODIGO DANE` | Format & Length | DANE code is an 8-character string. | Length == 8 for 100% | **Critical** | R2, R5, R6, R7 |
+| **DQ-RAW1-04** | Raw Primary | `CANTIDAD` | Validity & Range | Measure `CANTIDAD` must be a positive integer >= 1. | Value >= 1 for 100% | **Critical** | R1–R7 |
 | **DQ-RAW1-05** | Raw Primary | `GENERO` | Completeness | Unreported gender must not exceed 1% of the extract. | Nulls <= 1.0% | **Warning** | R3 |
 | **DQ-RAW2-01** | Raw API | Schema / Columns | Completeness | Mandatory API attributes are present in the payload. | Missing columns = 0 | **Critical** | R6, R7 |
 | **DQ-RAW2-02** | Raw API | `c_digo_dane_municipio` | Validity | DANE code length is between 4 and 5 characters. | Valid for 100% | **Critical** | R6, R7 |
-| **DQ-RAW2-03** | Raw API | `categoria_municipio` | Domain Validity | Municipal category belongs to the legal set (1–6, ESP). | Unexpected <= 2.0% | **Warning** | R7 |
-| **DQ-RAW2-04** | Raw API | `existencia_de_comisarias` | Validity & Range | Verified comisarías count must be >= 0. | Value >= 0 for >= 90% | **Critical** | R6, R7 |
+| **DQ-RAW2-03** | Raw API | `categoria_municipio` | Domain Validity | Municipal category belongs to legal set (1–6, ESP). | Unexpected <= 2.0% | **Warning** | R7 |
+| **DQ-RAW2-04** | Raw API | `existencia_de_comisarias` | Validity & Range | Verified comisarías count must be non-negative. | Value >= 0 for 100% | **Critical** | R6, R7 |
+| **DQ-RAW2-05** | Raw API | `existencia_de_comisarias` | Completeness | Missingness in raw count column must not exceed 10%. | Nulls <= 10.0% | **Warning** | R6 |
 | **DQ-PREP-01** | Prepared | Grain columns | Uniqueness | Declared grain is unique in the fact table. | Duplicates = 0 | **Critical** | R1–R7 |
 | **DQ-PREP-02** | Prepared | Foreign keys | Completeness | Foreign keys must not be null in the fact table. | Null FKs = 0 | **Critical** | R1–R7 |
 | **DQ-PREP-03** | Prepared | Foreign keys | Referential Integrity | All fact foreign keys exist in the dimensions. | Orphan FKs = 0 | **Critical** | R1–R7 |
 | **DQ-PREP-04** | Prepared | `comisarias_instaladas` | Range | Installed comisarías count is non-negative. | Value >= 0 for 100% | **Critical** | R6, R7 |
-| **DQ-PREP-05** | Prepared | `cantidad_victimas` | Reconciliation | Loaded victims match the raw extract total exactly. | Delta = 0 | **Critical** | All |
+| **DQ-PREP-05** | Prepared | `cantidad_victimas` | Reconciliation | Loaded victims & records match raw extract totals. | Delta = 0 | **Critical** | All |
+| **DQ-PREP-06** | Prepared | `categoria_municipio` | Integration Coverage | Municipalities matched to MinJusticia API directory. | Match rate >= 98.0% | **Warning** | R6, R7 |
+
+### 9.1 Material Threshold Justifications (Course Rubric Section 8.1)
+
+| Rule ID | Material Threshold | Analytical, Contractual, Historical or Operational Justification |
+| :---: | :--- | :--- |
+| **DQ-RAW1-01** | Missing = 0 | **Contractual:** The 8 native columns form the authoritative schema of dataset `vuyt-mqpw` (DIJIN). Omitting any attribute directly prevents building its associated dimension. |
+| **DQ-RAW1-02** | Valid = 100% | **Analytical:** Unparseable dates cannot receive a valid `id_tiempo`, causing dropped facts and violating exact victim reconciliation. |
+| **DQ-RAW1-03** | Length 8 = 100% | **Contractual (DIVIPOLA):** Raw police records report at the 8-digit *centro poblado* level (`DDMMMPPP`). Truncating the first 5 digits creates the municipal key. Irregular lengths produce corrupt keys. |
+| **DQ-RAW1-04** | Value >= 1 (100%)| **Business Rule:** A police domestic violence denunciation registers at least one victim. Values <= 0 are semantically invalid and would distort additive aggregations. |
+| **DQ-RAW1-05** | Nulls <= 1.0% | **Analytical Tolerance:** The historical null rate is 0.48%, safely imputed as `NO REPORTADO`. If nulls exceeded 1%, gender-based disparity metrics (R3) would suffer material bias. |
+| **DQ-RAW2-01** | Missing = 0 | **Contractual:** The 4 attributes in endpoint `7tuu-upb2` provide the municipal integration key and statutory capacity values. None can be omitted. |
+| **DQ-RAW2-02** | Valid = 100% | **Contractual (DIVIPOLA):** 4-digit codes lost their leading zero (e.g. `5088` -> `05088`). Strict `zfill(5)` normalization requires codes of length 4 or 5. |
+| **DQ-RAW2-03** | Unexpected <= 2%| **Legal Domain (Ley 617 de 2000):** Municipalities are classified into categories 1–6 and Special (`ESP`). Minor textual variations can be safely cleaned without affecting R7 priority rankings. |
+| **DQ-RAW2-04** | Value >= 0 (100%)| **Business Rule:** Physical facility counts cannot be negative; negative values would corrupt R6 workload ratios and R7 deficit formulas. |
+| **DQ-RAW2-05** | Nulls <= 10.0% | **Operational:** When count is omitted, 1 facility is imputed from the directory record itself. If missingness exceeded 10%, manual re-verification with MinJusticia would be required. |
+| **DQ-PREP-01** | Duplicates = 0 | **Dimensional Invariant:** Declared grain `(id_tiempo, id_geografia, id_victima, id_medio)` must be unique. Any duplicate would double-count victims in OLAP rollups. |
+| **DQ-PREP-02** | Null FKs = 0 | **Relational Integrity:** A fact table row with a null foreign key creates orphan measurements that cannot be sliced by that dimension. |
+| **DQ-PREP-03** | Orphans = 0 | **Referential Integrity:** Enforces that 100% of foreign keys resolve to valid primary keys in dimensions prior to database bulk `COPY`. |
+| **DQ-PREP-04** | Value >= 0 (100%)| **Analytical Validity:** Derived column `comisarias_instaladas` in `dim_geografia` must be non-negative for Power BI ratios. |
+| **DQ-PREP-05** | Delta = 0 | **Exact Reconciliation:** Every single victim (1,501,809) and raw record (704,551) must reconcile without silent row drops. |
+| **DQ-PREP-06** | Match >= 98.0% | **Structural Limit:** Colombia has 18 non-municipalized areas (departmental corregimientos in Amazonía) without comisarías. Coverage >= 98% proves no real municipality was dropped. |
 
 ---
 
@@ -235,9 +258,11 @@ Executed at **Gate 3 (`validate_prepared`)**, before loading the Data Warehouse:
 
 | Failure Class | Example | Task / Scope | Retry Configuration | Rationale |
 | :--- | :--- | :--- | :--- | :--- |
-| **Transient Operational** | API timeout, network drop | `extract_api` | `retries=3, retry_delay=10s, exponential backoff` | Temporary network issues typically resolve on subsequent attempts. |
-| **Transient Database** | Connection pool contention | `load_dimensional_dw` | `retries=1, retry_delay=5s` | Transient DB socket readiness recovers quickly. |
-| **Deterministic Data Quality** | Missing mandatory column, grain duplicates | `validate_*_raw`, `validate_prepared` | `retries=0` (fail fast) | Repeating a deterministic violation reproduces the same error. An immediate halt prevents pipeline corruption. |
+| **Transient Operational I/O** | File lock, disk latency | `extract_primary` | `retries=2, retry_delay=1m` | Recovers from transient OS file locks or momentary I/O delays. |
+| **Transient External API** | HTTP 429, timeout, network blip | `extract_api` | `retries=3, retry_delay=2m, backoff` | SODA REST API rate limits and network hiccups clear on subsequent attempts. |
+| **Transient Database Sockets** | Pool contention, brief lock wait | `load_dimensional_dw` | `retries=2, retry_delay=1m` | Transient connection exhaustion or socket readiness in PostgreSQL recovers quickly. |
+| **Deterministic Data Quality** | Missing mandatory column, grain duplicate | `validate_*_raw`, `validate_prepared` | `retries=0` (fail fast) | Repeating a deterministic rule failure reproduces the exact same error. Immediate halt prevents pipeline corruption. |
+| **Deterministic Transformation** | Structural schema mismatch | `transform_and_clean_and_integrate` | `retries=0` (fail fast) | Pure transformation logic cannot succeed by re-running against identical invalid inputs. |
 
 ---
 

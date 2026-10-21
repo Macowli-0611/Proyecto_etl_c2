@@ -1,111 +1,114 @@
 {
   "name": "prepared_data_suite",
-  "description": "Gate 3: Validación de datos integrados y preparados antes del Data Warehouse",
+  "description": "Gate 3: Validation of the transformed and integrated star-schema tables (data/processed/*.parquet) BEFORE loading the PostgreSQL Data Warehouse.",
   "meta": {
     "great_expectations_version": "1.24.0",
     "gate": "validate_prepared",
     "suite_name": "prepared_data_suite",
-    "target_model": "Star Schema (fact_violencia_intrafamiliar, dim_geografia, dim_tiempo, dim_victima, dim_medio)",
-    "academic_requirements": "R1, R2, R3, R4, R5, R6, R7"
+    "data_object": "Prepared Parquet tables: fact_violencia_intrafamiliar and dim_geografia (each validated as its own batch; 'meta.table' selects the batch)",
+    "runtime_parameters": {
+      "$dim_tiempo.id_tiempo": "Set of surrogate keys present in the prepared dim_tiempo",
+      "$dim_geografia.id_geografia": "Set of surrogate keys present in the prepared dim_geografia",
+      "$dim_victima.id_victima": "Set of surrogate keys present in the prepared dim_victima",
+      "$dim_medio.id_medio": "Set of surrogate keys present in the prepared dim_medio",
+      "$expected_victims": "SUM(CANTIDAD) of the accepted raw primary batch (primary_source_manifest.json)",
+      "$expected_records": "Row count of the accepted raw primary batch (primary_source_manifest.json)"
+    },
+    "academic_requirements": "R1-R7"
   },
   "expectations": [
     {
       "type": "expect_compound_columns_to_be_unique",
-      "kwargs": {
-        "column_list": [
-          "id_tiempo",
-          "id_geografia",
-          "id_victima",
-          "id_medio"
-        ]
-      },
+      "kwargs": {"column_list": ["id_tiempo", "id_geografia", "id_victima", "id_medio"]},
       "meta": {
-        "rule_id": "DQ-PREP-01",
-        "severity": "Critical",
-        "requirement": "R1–R7",
-        "dimension": "Uniqueness",
-        "target_table": "fact_violencia_intrafamiliar",
-        "metric": "Duplicate grain tuples == 0",
-        "description": "Fact table declared grain uniqueness (id_tiempo, id_geografia, id_victima, id_medio)."
-      },
-      "notes": "DQ-PREP-01: Critical. Fact table uniqueness at declared municipal grain (id_tiempo, id_geografia, id_victima, id_medio)."
+        "rule_id": "DQ-PREP-01", "table": "fact_violencia_intrafamiliar", "severity": "Critical", "requirement": "R1-R7",
+        "dimension": "Uniqueness (declared grain)", "metric": "Duplicate grain combinations = 0",
+        "threshold_justification": "Grain invariant: one fact row = one (day, municipality, victim cohort, mechanism). A duplicate would double-count victims and also violate the uq_fact_grano constraint in PostgreSQL."
+      }
     },
     {
       "type": "expect_column_values_to_not_be_null",
-      "kwargs": {
-        "column_list": [
-          "id_tiempo",
-          "id_geografia",
-          "id_victima",
-          "id_medio"
-        ]
-      },
-      "meta": {
-        "rule_id": "DQ-PREP-02",
-        "severity": "Critical",
-        "requirement": "R1–R7",
-        "dimension": "Completeness",
-        "target_table": "fact_violencia_intrafamiliar",
-        "metric": "Null foreign keys == 0",
-        "description": "Foreign keys must not be null in fact table."
-      },
-      "notes": "DQ-PREP-02: Critical. Zero null foreign keys in fact table."
+      "kwargs": {"column": "id_tiempo"},
+      "meta": {"rule_id": "DQ-PREP-02", "table": "fact_violencia_intrafamiliar", "severity": "Critical", "requirement": "R1-R7",
+        "dimension": "Completeness (keys)", "metric": "Null id_tiempo = 0",
+        "threshold_justification": "Key readiness: a null foreign key cannot be loaded (NOT NULL FK) and would drop the row from every star join."}
     },
     {
-      "type": "expect_table_foreign_keys_to_exist_in_dimensions",
-      "kwargs": {
-        "foreign_keys": {
-          "id_tiempo": "dim_tiempo.id_tiempo",
-          "id_geografia": "dim_geografia.id_geografia",
-          "id_victima": "dim_victima.id_victima",
-          "id_medio": "dim_medio.id_medio"
-        }
-      },
-      "meta": {
-        "rule_id": "DQ-PREP-03",
-        "severity": "Critical",
-        "requirement": "R1–R7",
-        "dimension": "Consistency & Referential Integrity",
-        "target_table": "fact_violencia_intrafamiliar",
-        "metric": "Orphan foreign keys == 0 across all dimensions",
-        "description": "Referential integrity: all fact foreign keys must exist in corresponding dimension primary keys."
-      },
-      "notes": "DQ-PREP-03: Critical. Referential integrity (fact foreign keys must exist in dimensions)."
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {"column": "id_geografia"},
+      "meta": {"rule_id": "DQ-PREP-02", "table": "fact_violencia_intrafamiliar", "severity": "Critical", "requirement": "R1-R7",
+        "dimension": "Completeness (keys)", "metric": "Null id_geografia = 0",
+        "threshold_justification": "Key readiness: a null foreign key cannot be loaded (NOT NULL FK) and would drop the row from every star join."}
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {"column": "id_victima"},
+      "meta": {"rule_id": "DQ-PREP-02", "table": "fact_violencia_intrafamiliar", "severity": "Critical", "requirement": "R1-R7",
+        "dimension": "Completeness (keys)", "metric": "Null id_victima = 0",
+        "threshold_justification": "Key readiness: a null foreign key cannot be loaded (NOT NULL FK) and would drop the row from every star join."}
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {"column": "id_medio"},
+      "meta": {"rule_id": "DQ-PREP-02", "table": "fact_violencia_intrafamiliar", "severity": "Critical", "requirement": "R1-R7",
+        "dimension": "Completeness (keys)", "metric": "Null id_medio = 0",
+        "threshold_justification": "Key readiness: a null foreign key cannot be loaded (NOT NULL FK) and would drop the row from every star join."}
+    },
+    {
+      "type": "expect_column_values_to_be_in_set",
+      "kwargs": {"column": "id_tiempo", "value_set": "$dim_tiempo.id_tiempo"},
+      "meta": {"rule_id": "DQ-PREP-03", "table": "fact_violencia_intrafamiliar", "severity": "Critical", "requirement": "R1",
+        "dimension": "Consistency (referential integrity)", "metric": "Orphan id_tiempo = 0",
+        "threshold_justification": "Referential readiness: an orphan key would make the FK constraint reject the whole load."}
+    },
+    {
+      "type": "expect_column_values_to_be_in_set",
+      "kwargs": {"column": "id_geografia", "value_set": "$dim_geografia.id_geografia"},
+      "meta": {"rule_id": "DQ-PREP-03", "table": "fact_violencia_intrafamiliar", "severity": "Critical", "requirement": "R2, R5, R6, R7",
+        "dimension": "Consistency (referential integrity)", "metric": "Orphan id_geografia = 0",
+        "threshold_justification": "Referential readiness and integration integrity: every fact must reach a municipality enriched (or explicitly defaulted) by the API contract."}
+    },
+    {
+      "type": "expect_column_values_to_be_in_set",
+      "kwargs": {"column": "id_victima", "value_set": "$dim_victima.id_victima"},
+      "meta": {"rule_id": "DQ-PREP-03", "table": "fact_violencia_intrafamiliar", "severity": "Critical", "requirement": "R3, R5",
+        "dimension": "Consistency (referential integrity)", "metric": "Orphan id_victima = 0",
+        "threshold_justification": "Referential readiness: an orphan key would make the FK constraint reject the whole load."}
+    },
+    {
+      "type": "expect_column_values_to_be_in_set",
+      "kwargs": {"column": "id_medio", "value_set": "$dim_medio.id_medio"},
+      "meta": {"rule_id": "DQ-PREP-03", "table": "fact_violencia_intrafamiliar", "severity": "Critical", "requirement": "R4, R5",
+        "dimension": "Consistency (referential integrity)", "metric": "Orphan id_medio = 0",
+        "threshold_justification": "Referential readiness: an orphan key would make the FK constraint reject the whole load."}
     },
     {
       "type": "expect_column_values_to_be_between",
-      "kwargs": {
-        "column": "comisarias_instaladas",
-        "min_value": 0
-      },
-      "meta": {
-        "rule_id": "DQ-PREP-04",
-        "severity": "Critical",
-        "requirement": "R6, R7",
-        "dimension": "Validity & Range",
-        "target_table": "dim_geografia",
-        "metric": "comisarias_instaladas >= 0 for 100% of rows",
-        "description": "Enriched dim_geografia comisarias_instaladas non-negative."
-      },
-      "notes": "DQ-PREP-04: Critical. Enriched dim_geografia comisarias_instaladas non-negative."
+      "kwargs": {"column": "comisarias_instaladas", "min_value": 0},
+      "meta": {"rule_id": "DQ-PREP-04", "table": "dim_geografia", "severity": "Critical", "requirement": "R6, R7",
+        "dimension": "Validity (derived attribute)", "metric": "comisarias_instaladas >= 0 for 100% of municipalities",
+        "threshold_justification": "Derived-attribute rule: the R6 ratio and the R7 gap max(0, required - installed) are only defined for non-negative installed counts."}
     },
     {
-      "type": "expect_table_reconciliation_totals_to_match",
-      "kwargs": {
-        "measures": [
-          "cantidad_victimas",
-          "numero_registros"
-        ]
-      },
-      "meta": {
-        "rule_id": "DQ-PREP-05",
-        "severity": "Critical",
-        "requirement": "All",
-        "target_table": "fact_violencia_intrafamiliar",
-        "metric": "Reconciliation delta (expected - actual) == 0 for victims and records",
-        "description": "Measure reconciliation between source extract manifest and prepared fact table."
-      },
-      "notes": "DQ-PREP-05: Critical. Reconciliation of measures between source extract and fact table."
+      "type": "expect_column_values_to_not_be_in_set",
+      "kwargs": {"column": "categoria_municipio", "value_set": ["ÁREA NO MUNICIPALIZADA"], "mostly": 0.98},
+      "meta": {"rule_id": "DQ-PREP-06", "table": "dim_geografia", "severity": "Warning", "requirement": "R6, R7",
+        "dimension": "Integration coverage (matching indicator)", "metric": "Municipalities matched to the API >= 98%",
+        "threshold_justification": "Structural ceiling: Colombia has roughly 1,100 municipalities plus 18 non-municipalized areas (DIVIPOLA) that by law have no comisaría and can never match (about 1.6%). Coverage below 98% means real municipalities stopped matching (key or API regression), which biases R6/R7 and must be visible. Baseline: 98.92%."}
+    },
+    {
+      "type": "expect_column_sum_to_be_between",
+      "kwargs": {"column": "cantidad_victimas", "min_value": "$expected_victims", "max_value": "$expected_victims"},
+      "meta": {"rule_id": "DQ-PREP-05", "table": "fact_violencia_intrafamiliar", "severity": "Critical", "requirement": "R1-R7",
+        "dimension": "Accuracy (reconciliation)", "metric": "SUM(cantidad_victimas) - SUM(raw CANTIDAD) = 0",
+        "threshold_justification": "The transformation policy imputes instead of dropping (0 victims discarded). Any delta means victims were lost or duplicated by aggregation or the integration join."}
+    },
+    {
+      "type": "expect_column_sum_to_be_between",
+      "kwargs": {"column": "numero_registros", "min_value": "$expected_records", "max_value": "$expected_records"},
+      "meta": {"rule_id": "DQ-PREP-05", "table": "fact_violencia_intrafamiliar", "severity": "Critical", "requirement": "R1-R7",
+        "dimension": "Accuracy (reconciliation)", "metric": "SUM(numero_registros) - raw row count = 0",
+        "threshold_justification": "Each raw report must be represented exactly once after rollup to the municipal grain."}
     }
   ]
 }

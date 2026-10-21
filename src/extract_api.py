@@ -83,61 +83,94 @@ def fetch_api_page_with_retry(
     return []
 
 
-def extract_api_data(force_refresh: bool = False) -> Tuple[pd.DataFrame, Dict]:
-    """Programmatically extracts all records from the Comisarías de Familia API.
+def extract_api_data(
+    filepath: str = None,
+    offline_mode: bool = False,
+    force_refresh: bool = True
+) -> Tuple[pd.DataFrame, Dict]:
+    """Programmatically extracts all records from the Comisarías de Familia SODA API.
 
     Uses pagination to guarantee complete acquisition regardless of API page limits.
     Persists the raw JSON payload and generates a cryptographic provenance manifest.
+    If external network or API fails, gracefully falls back to local cache if present.
+
+    Args:
+        filepath: Optional path to an already extracted JSON file (for downstream tasks).
+        offline_mode: If True, skips network call and loads from local cache.
+        force_refresh: If True (default), always attempts live API call first.
 
     Returns:
         Tuple[pd.DataFrame, Dict]: Raw API dataframe and manifest dictionary.
     """
     os.makedirs(RAW_DIR, exist_ok=True)
+    target_path = filepath or API_RAW_JSON_PATH
     all_records: List[Dict] = []
-    offset = 0
-    limit = API_PAGE_LIMIT
+    fallback_used = False
 
-    logger.info("Initiating programmatic extraction from SODA API: %s", API_BASE_URL)
+    # Scenario 1: Downstream task requested a specific filepath
+    if filepath and os.path.exists(filepath):
+        logger.info("Loading specified API raw payload from %s...", filepath)
+        with open(filepath, "r", encoding="utf-8") as f:
+            all_records = json.load(f)
+        target_path = filepath
 
-    # Check if cached raw response exists and force_refresh is False
-    if not force_refresh and os.path.exists(API_RAW_JSON_PATH):
-        logger.info("Reading cached raw API response from %s...", API_RAW_JSON_PATH)
+    # Scenario 2: Offline mode requested
+    elif offline_mode and os.path.exists(API_RAW_JSON_PATH):
+        logger.info("Offline mode requested: loading cached API payload from %s...", API_RAW_JSON_PATH)
         with open(API_RAW_JSON_PATH, "r", encoding="utf-8") as f:
             all_records = json.load(f)
-        logger.info("Loaded %d records from local API cache.", len(all_records))
+        fallback_used = True
+
+    # Scenario 3: Operational workflow - Live Programmatic Extraction via SODA REST API
     else:
-        while True:
-            params = {
-                "$limit": str(limit),
-                "$offset": str(offset),
-                "$order": ":id"
-            }
-            logger.info("Fetching API records batch: offset=%d, limit=%d...", offset, limit)
-            page_records = fetch_api_page_with_retry(API_BASE_URL, params)
-            if not page_records:
-                break
+        logger.info("Initiating programmatic extraction from SODA API: %s", API_BASE_URL)
+        offset = 0
+        limit = API_PAGE_LIMIT
+        try:
+            while True:
+                params = {
+                    "$limit": str(limit),
+                    "$offset": str(offset),
+                    "$order": ":id"
+                }
+                logger.info("Fetching API batch: offset=%d, limit=%d...", offset, limit)
+                page_records = fetch_api_page_with_retry(API_BASE_URL, params)
+                if not page_records:
+                    break
 
-            all_records.extend(page_records)
-            logger.info("Retrieved %d records in current batch. Total so far: %d", len(page_records), len(all_records))
+                all_records.extend(page_records)
+                logger.info("Retrieved %d records in current batch. Total: %d", len(page_records), len(all_records))
 
-            if len(page_records) < limit:
-                # Last page reached
-                break
-            offset += limit
+                if len(page_records) < limit:
+                    break
+                offset += limit
 
-        logger.info("API extraction complete. Total records retrieved: %d", len(all_records))
+            logger.info("API extraction complete. Total records retrieved: %d", len(all_records))
 
-        # Persist raw response for audit, inspection and offline reproducibility
-        with open(API_RAW_JSON_PATH, "w", encoding="utf-8") as f:
-            json.dump(all_records, f, indent=2, ensure_ascii=False)
-        logger.info("Saved raw API response to %s", API_RAW_JSON_PATH)
+            # Persist raw response for audit, inspection and offline reproducibility
+            with open(API_RAW_JSON_PATH, "w", encoding="utf-8") as f:
+                json.dump(all_records, f, indent=2, ensure_ascii=False)
+            logger.info("Persisted raw API response to %s", API_RAW_JSON_PATH)
+
+        except Exception as e:
+            if os.path.exists(API_RAW_JSON_PATH):
+                logger.warning(
+                    "Live API query failed (%s). Falling back to local cache %s to guarantee operational continuity.",
+                    e, API_RAW_JSON_PATH
+                )
+                with open(API_RAW_JSON_PATH, "r", encoding="utf-8") as f:
+                    all_records = json.load(f)
+                fallback_used = True
+            else:
+                logger.error("API query failed and no local cache is available!")
+                raise e
 
     # Read into pandas dataframe as text strings
     df_raw = pd.DataFrame(all_records).astype(str)
 
     # Compute hash of raw file
     hasher = hashlib.sha256()
-    with open(API_RAW_JSON_PATH, "rb") as f:
+    with open(target_path, "rb") as f:
         while chunk := f.read(8192 * 1024):
             hasher.update(chunk)
     sha256_hash = hasher.hexdigest()
@@ -147,19 +180,20 @@ def extract_api_data(force_refresh: bool = False) -> Tuple[pd.DataFrame, Dict]:
         "provider": "Ministerio de Justicia y del Derecho / Presidencia de la República",
         "api_endpoint": API_BASE_URL,
         "extraction_timestamp": datetime.now().isoformat(),
-        "local_filepath": API_RAW_JSON_PATH,
+        "local_filepath": target_path,
         "sha256": sha256_hash,
         "row_count": len(df_raw),
         "columns": list(df_raw.columns),
-        "distinct_municipalities_raw": int(df_raw["c_digo_dane_municipio"].nunique()) if "c_digo_dane_municipio" in df_raw.columns else 0
+        "distinct_municipalities_raw": int(df_raw["c_digo_dane_municipio"].nunique()) if "c_digo_dane_municipio" in df_raw.columns else 0,
+        "fallback_to_cache": fallback_used
     }
 
     with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
 
     logger.info(
-        "API manifest written: %d records, %d distinct municipalities, SHA-256: %s...",
-        len(df_raw), manifest["distinct_municipalities_raw"], sha256_hash[:16]
+        "API manifest written: %d records, %d distinct municipalities, SHA-256: %s... (fallback=%s)",
+        len(df_raw), manifest["distinct_municipalities_raw"], sha256_hash[:16], fallback_used
     )
 
     return df_raw, manifest

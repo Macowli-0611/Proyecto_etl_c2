@@ -1,39 +1,32 @@
 {
   "name": "primary_raw_suite",
-  "description": "Gate 1: Validación cruda de fuente primaria (Reporte Delito Violencia Intrafamiliar - Policía Nacional DIJIN)",
+  "description": "Gate 1: Raw validation of the primary source (Policía Nacional - DIJIN domestic violence reports), evaluated on the extracted batch BEFORE any business transformation.",
   "meta": {
     "great_expectations_version": "1.24.0",
     "gate": "validate_primary_raw",
     "suite_name": "primary_raw_suite",
-    "source": "Policía Nacional de Colombia - DIJIN",
-    "target_table": "raw_primary_domestic_violence",
-    "academic_requirements": "R1, R2, R3, R4, R5"
+    "data_object": "Raw CSV batch data/raw/Reporte_Delito_Violencia_Intrafamiliar_*.csv (all columns read as text)",
+    "source": "Policía Nacional (DIJIN) / datos.gov.co",
+    "derived_evaluation_columns": {
+      "CANTIDAD_NUMERIC": "pd.to_numeric(CANTIDAD, errors='coerce'). Type cast used ONLY for evaluation; the raw batch is not modified."
+    },
+    "academic_requirements": "R1-R5"
   },
   "expectations": [
     {
       "type": "expect_table_columns_to_match_set",
       "kwargs": {
-        "column_set": [
-          "DEPARTAMENTO",
-          "MUNICIPIO",
-          "CODIGO DANE",
-          "ARMAS MEDIOS",
-          "FECHA HECHO",
-          "GENERO",
-          "GRUPO ETARIO",
-          "CANTIDAD"
-        ],
+        "column_set": ["DEPARTAMENTO", "MUNICIPIO", "CODIGO DANE", "ARMAS MEDIOS", "FECHA HECHO", "GENERO", "GRUPO ETARIO", "CANTIDAD"],
         "exact_match": false
       },
       "meta": {
         "rule_id": "DQ-RAW1-01",
         "severity": "Critical",
-        "requirement": "R1–R5",
-        "dimension": "Completeness",
-        "metric": "Missing columns == 0",
-        "description": "Mandatory columns must exist in raw extract."
-      },
-      "notes": "DQ-RAW1-01: Critical. Verifies mandatory schema columns exist."
+        "requirement": "R1-R5",
+        "dimension": "Completeness (schema)",
+        "metric": "Missing mandatory columns = 0",
+        "threshold_justification": "Contractual: the 8 columns are the published schema of dataset vuyt-mqpw and every one feeds a dimension or the measure. A single missing column makes a dimension impossible to build, so no tolerance is allowed."
+      }
     },
     {
       "type": "expect_column_values_to_match_regex",
@@ -45,29 +38,40 @@
         "rule_id": "DQ-RAW1-02",
         "severity": "Critical",
         "requirement": "R1",
-        "dimension": "Validity & Format",
-        "metric": "Parseable DD/MM/YYYY dates == 100%",
-        "description": "Incident date matches DD/MM/YYYY format."
-      },
-      "notes": "DQ-RAW1-02: Critical. Incident date matches DD/MM/YYYY format."
+        "dimension": "Validity (format)",
+        "metric": "Values matching DD/MM/YYYY = 100%",
+        "threshold_justification": "Analytical: a record whose date cannot be parsed has no id_tiempo, so it cannot be loaded without breaking the exact victim reconciliation (DQ-PREP-05). Any unparseable date is therefore a contract break, not noise."
+      }
     },
     {
       "type": "expect_column_value_lengths_to_be_between",
       "kwargs": {
         "column": "CODIGO DANE",
         "min_value": 8,
-        "max_value": 8,
-        "mostly": 0.9999
+        "max_value": 8
       },
       "meta": {
         "rule_id": "DQ-RAW1-03",
         "severity": "Critical",
-        "requirement": "R2, R5",
-        "dimension": "Format & Length",
-        "metric": "DANE code length == 8 for >= 99.99%",
-        "description": "DANE code must be 8-digit string at poblado level in raw extract."
+        "requirement": "R2, R5, R6, R7",
+        "dimension": "Validity (format)",
+        "metric": "Length = 8 characters for 100% of rows",
+        "threshold_justification": "Contractual (DIVIPOLA): the source publishes 8-digit centro-poblado codes; the municipal key is its first 5 digits. A code of any other length cannot be rolled up to a municipality and would silently break the integration key used by R6/R7."
+      }
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "CANTIDAD_NUMERIC"
       },
-      "notes": "DQ-RAW1-03: Critical. DANE code must be 8-digit string."
+      "meta": {
+        "rule_id": "DQ-RAW1-04",
+        "severity": "Critical",
+        "requirement": "R1-R7",
+        "dimension": "Validity (type)",
+        "metric": "Non-numeric or missing CANTIDAD = 0",
+        "threshold_justification": "CANTIDAD is the only additive measure. A non-numeric value would be coerced to null and drop victims from every KPI; zero tolerance protects the reconciliation invariant."
+      }
     },
     {
       "type": "expect_column_values_to_be_between",
@@ -78,12 +82,11 @@
       "meta": {
         "rule_id": "DQ-RAW1-04",
         "severity": "Critical",
-        "requirement": "R1–R5",
-        "dimension": "Validity & Range",
-        "metric": "Value >= 1 for 100% of rows",
-        "description": "Measure CANTIDAD must be a positive integer >= 1."
-      },
-      "notes": "DQ-RAW1-04: Critical. Measure CANTIDAD must be >= 1."
+        "requirement": "R1-R7",
+        "dimension": "Validity (range)",
+        "metric": "CANTIDAD >= 1 for 100% of rows",
+        "threshold_justification": "Business rule: a crime report registers at least one victim. A value <= 0 is semantically impossible and would reduce victim totals."
+      }
     },
     {
       "type": "expect_column_values_to_not_be_null",
@@ -96,10 +99,9 @@
         "severity": "Warning",
         "requirement": "R3",
         "dimension": "Completeness",
-        "metric": "Null gender <= 1.0%",
-        "description": "Unreported gender must not exceed 1% of extract."
-      },
-      "notes": "DQ-RAW1-05: Warning. Null gender must not exceed 1%."
+        "metric": "Null GENERO <= 1.0%",
+        "threshold_justification": "Analytical tolerance: nulls are imputed as 'NO REPORTADO' (no victims lost). With <= 1% unknown, the female share in R3 (77.3%) can move by at most ~1 percentage point, which does not change the conclusion. Above 1% the R3 KPI is no longer reliable, so the issue must be made visible. Historical baseline: 0.48%."
+      }
     }
   ]
 }

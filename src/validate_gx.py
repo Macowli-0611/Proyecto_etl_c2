@@ -1,26 +1,34 @@
 """Automated Data Quality Validation Module with Great Expectations 1.X.
 
-Implements three explicit validation gates required by the course rubric:
-  1. validate_primary_raw: Raw Primary Branch (DIJIN Domestic Violence Reports) - Gate 1
-  2. validate_api_raw: Raw API Branch (MinJusticia Comisarías de Familia) - Gate 2
-  3. validate_prepared_data: Transformed & Integrated Prepared Data (pre-DW load) - Gate 3
+Implements the three explicit validation gates required by the Second Delivery:
+  1. validate_primary_raw   - Gate 1: raw primary branch (Policía Nacional - DIJIN)
+  2. validate_api_raw       - Gate 2: raw API branch (MinJusticia - Comisarías de Familia)
+  3. validate_prepared_data - Gate 3: transformed & integrated star schema (pre-DW load)
 
-Each check is traceable to a documented DQ Rule ID, dimension, metric, threshold, and severity.
-Expectation Suites are maintained and synchronized from the declarative repository:
-  - gx/expectations/primary_raw_suite.json
-  - gx/expectations/api_raw_suite.json
-  - gx/expectations/prepared_data_suite.json
-
-Severity Policy:
-  - Critical severity violations halt execution immediately and block downstream processing.
-  - Warning severity checks record audit findings in docs/evidence/ and allow pipeline continuation.
+Design
+------
+* Single source of truth: the declarative Expectation Suites in ``gx/expectations/*.json``.
+  Every expectation in a suite carries ``meta.rule_id``, ``meta.severity``, ``meta.requirement``,
+  ``meta.metric`` and ``meta.threshold_justification``. This module builds the GX suite *from*
+  those files, so documentation, configuration and execution cannot drift apart.
+* Controlled execution: for each data object an ephemeral GX context registers a pandas
+  Data Source -> Data Asset -> Batch Definition, links it to the suite through a
+  Validation Definition and runs it through a Checkpoint (see ``gx/checkpoints``).
+* Severity policy (pipeline response, decided here and NOT by GX):
+    - Critical -> raise ``ValidationError`` (Airflow task FAILED, downstream UPSTREAM_FAILED).
+    - Warning  -> recorded in the evidence file and logs; the batch continues.
+* Evidence: every run writes ``docs/evidence/gx_validation_<gate>_<timestamp>.json`` and a
+  ``*_latest.json`` pointer with rule-level outcomes and unexpected counts/examples.
+* Profiling/cleaning separation: validation never modifies the batch. Type casts needed only
+  for evaluation (e.g. ``CANTIDAD_NUMERIC``) are added to a copy and documented in the suite meta.
 """
 
 import json
 import logging
 import os
+import re
 from datetime import datetime
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import great_expectations as gx
 import great_expectations.expectations as gxe
@@ -38,430 +46,330 @@ GX_DIR = os.path.join(PROJECT_ROOT, "gx")
 EXPECTATIONS_DIR = os.path.join(GX_DIR, "expectations")
 EVIDENCE_DIR = os.path.join(PROJECT_ROOT, "docs", "evidence")
 
+MAX_EXAMPLES = 10  # unexpected examples kept per rule in the evidence file
+
 
 class ValidationError(Exception):
-    """Custom exception raised when a Critical quality expectation fails."""
-    pass
+    """Raised when at least one Critical expectation fails (pipeline must stop)."""
 
 
+# ---------------------------------------------------------------------------
+# Suite loading and expectation construction
+# ---------------------------------------------------------------------------
 def load_expectation_suite_json(suite_name: str) -> Dict[str, Any]:
     """Loads a declarative expectation suite definition from gx/expectations/."""
-    filename = f"{suite_name}.json" if not suite_name.endswith(".json") else suite_name
+    filename = suite_name if suite_name.endswith(".json") else f"{suite_name}.json"
     filepath = os.path.join(EXPECTATIONS_DIR, filename)
-    if os.path.exists(filepath):
-        try:
-            with open(filepath, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.warning("Could not read expectation suite from %s: %s", filepath, e)
-    return {}
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(f"Expectation suite not found: {filepath}")
+    with open(filepath, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _expectation_class(exp_type: str):
+    """Maps a snake_case GX expectation type to its class (e.g. expect_x_y -> ExpectXY)."""
+    class_name = "".join(part.capitalize() for part in exp_type.split("_"))
+    exp_cls = getattr(gxe, class_name, None)
+    if exp_cls is None:
+        raise ValueError(f"Unknown Great Expectations expectation type: {exp_type}")
+    return exp_cls
+
+
+def _resolve_kwargs(kwargs: Dict[str, Any], runtime_params: Dict[str, Any]) -> Dict[str, Any]:
+    """Replaces "$placeholder" values with runtime parameters (dimension key sets, totals)."""
+    resolved = {}
+    for key, value in kwargs.items():
+        if isinstance(value, str) and value.startswith("$"):
+            if value not in runtime_params:
+                raise KeyError(f"Missing runtime parameter {value} for expectation kwarg '{key}'")
+            resolved[key] = runtime_params[value]
+        else:
+            resolved[key] = value
+    return resolved
+
+
+def _describe_kwargs(kwargs: Dict[str, Any]) -> Dict[str, Any]:
+    """Compact kwargs for evidence (large runtime value sets are summarized)."""
+    out = {}
+    for key, value in kwargs.items():
+        if isinstance(value, (list, set, tuple)) and len(value) > 20:
+            out[key] = f"<{len(value)} values>"
+        else:
+            out[key] = value
+    return out
+
+
+def _compact_result(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Keeps the interpretable part of a GX result (counts, percentages, examples)."""
+    keep = [
+        "observed_value", "element_count", "missing_count", "missing_percent",
+        "unexpected_count", "unexpected_percent", "unexpected_percent_nonmissing",
+        "partial_unexpected_list", "details",
+    ]
+    compact = {k: result[k] for k in keep if k in result}
+    if isinstance(compact.get("partial_unexpected_list"), list):
+        compact["partial_unexpected_list"] = compact["partial_unexpected_list"][:MAX_EXAMPLES]
+    if isinstance(compact.get("observed_value"), (list, set)) and len(compact["observed_value"]) > 30:
+        compact["observed_value"] = f"<{len(compact['observed_value'])} values>"
+    return compact
+
+
+# ---------------------------------------------------------------------------
+# Generic controlled execution of one suite (or one table slice of a suite)
+# ---------------------------------------------------------------------------
+def _run_suite_on_dataframe(
+    df: pd.DataFrame,
+    suite_json: Dict[str, Any],
+    gate: str,
+    data_object: str,
+    expectations: List[Dict[str, Any]],
+    runtime_params: Optional[Dict[str, Any]] = None,
+) -> List[Dict[str, Any]]:
+    """Builds a GX suite from JSON expectations and runs it through a Checkpoint.
+
+    Column-level expectations whose column is absent are reported as NOT_EVALUATED; the
+    schema expectation (expect_table_columns_to_match_set) already fails in that case.
+    """
+    runtime_params = runtime_params or {}
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S%f")
+    safe_obj = re.sub(r"[^A-Za-z0-9_]", "_", data_object)
+
+    context = gx.get_context(mode="ephemeral")
+    data_source = context.data_sources.add_pandas(f"pandas_{gate}_{safe_obj}_{stamp}")
+    data_asset = data_source.add_dataframe_asset(f"{safe_obj}_asset")
+    batch_def = data_asset.add_batch_definition_whole_dataframe(f"batch_{safe_obj}")
+
+    suite = context.suites.add(gx.ExpectationSuite(name=f"{suite_json['name']}__{safe_obj}"))
+
+    outcomes: List[Dict[str, Any]] = []
+    registered: List[Dict[str, Any]] = []
+    for exp in expectations:
+        meta = exp.get("meta", {})
+        kwargs = _resolve_kwargs(exp.get("kwargs", {}), runtime_params)
+        column = kwargs.get("column")
+        if column is not None and column not in df.columns:
+            outcomes.append({
+                "rule_id": meta.get("rule_id"),
+                "severity": meta.get("severity"),
+                "expectation": exp["type"],
+                "kwargs": _describe_kwargs(kwargs),
+                "data_object": data_object,
+                "success": None,
+                "status": "NOT_EVALUATED_COLUMN_MISSING",
+            })
+            continue
+        exp_cls = _expectation_class(exp["type"])
+        notes = f"{meta.get('rule_id')}: {meta.get('severity')}. {meta.get('metric', '')}"
+        gx_exp = exp_cls(**kwargs, notes=notes, meta={"rule_id": meta.get("rule_id"), "severity": meta.get("severity")})
+        suite.add_expectation(gx_exp)
+        registered.append({"exp": exp, "kwargs": kwargs})
+
+    if registered:
+        val_def = context.validation_definitions.add(
+            gx.ValidationDefinition(name=f"val_{safe_obj}", data=batch_def, suite=suite)
+        )
+        checkpoint = context.checkpoints.add(
+            gx.Checkpoint(name=f"checkpoint_{safe_obj}", validation_definitions=[val_def], actions=[])
+        )
+        checkpoint_result = checkpoint.run(batch_parameters={"dataframe": df})
+        suite_result = next(iter(checkpoint_result.run_results.values()))
+
+        for res in suite_result.results:
+            cfg = res.expectation_config
+            res_meta = cfg.meta or {}
+            source = next(
+                (r for r in registered
+                 if r["exp"]["meta"].get("rule_id") == res_meta.get("rule_id")
+                 and r["exp"]["type"] == cfg.type
+                 and r["kwargs"].get("column") == cfg.kwargs.get("column")),
+                None,
+            )
+            src_meta = source["exp"]["meta"] if source else res_meta
+            outcomes.append({
+                "rule_id": src_meta.get("rule_id"),
+                "severity": src_meta.get("severity"),
+                "dimension": src_meta.get("dimension"),
+                "requirement": src_meta.get("requirement"),
+                "metric": src_meta.get("metric"),
+                "expectation": cfg.type,
+                "kwargs": _describe_kwargs(source["kwargs"] if source else dict(cfg.kwargs)),
+                "data_object": data_object,
+                "success": bool(res.success),
+                "status": "PASSED" if res.success else "FAILED",
+                "result": _compact_result(res.result or {}),
+                "exception": (res.exception_info or {}).get("exception_message")
+                if isinstance(res.exception_info, dict) and res.exception_info.get("raised_exception") else None,
+            })
+    return outcomes
+
+
+def _apply_severity_policy(gate: str, outcomes: List[Dict[str, Any]]) -> Tuple[bool, bool, List[str], List[str]]:
+    """Translates rule outcomes into the pipeline response.
+
+    Returns (overall_success, critical_failure, failed_critical_rules, failed_warning_rules).
+    A NOT_EVALUATED Critical rule counts as a Critical failure (the contract could not be checked).
+    """
+    failed_critical, failed_warning = [], []
+    for o in outcomes:
+        if o["success"] is True:
+            continue
+        if o["severity"] == "Critical":
+            failed_critical.append(o["rule_id"])
+            logger.error("[%s] CRITICAL rule failed: %s (%s on %s) -> %s",
+                         gate, o["rule_id"], o["expectation"], o.get("kwargs", {}).get("column", o["data_object"]),
+                         o.get("result", {}).get("unexpected_count", o["status"]))
+        else:
+            failed_warning.append(o["rule_id"])
+            logger.warning("[%s] WARNING rule failed: %s (%s) -> %s. Batch continues per policy.",
+                           gate, o["rule_id"], o["expectation"],
+                           o.get("result", {}).get("unexpected_percent", o["status"]))
+    critical_failure = bool(failed_critical)
+    overall_success = not failed_critical and not failed_warning
+    return overall_success, critical_failure, sorted(set(failed_critical)), sorted(set(failed_warning))
 
 
 def _save_validation_result(gate_name: str, result_dict: Dict[str, Any]) -> str:
-    """Saves validation execution results as JSON for audit, observability, and compliance."""
+    """Saves validation execution results as JSON for audit and observability."""
     os.makedirs(EVIDENCE_DIR, exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filepath = os.path.join(EVIDENCE_DIR, f"gx_validation_{gate_name}_{timestamp}.json")
     latest_path = os.path.join(EVIDENCE_DIR, f"gx_validation_{gate_name}_latest.json")
-
-    with open(filepath, "w", encoding="utf-8") as f:
-        json.dump(result_dict, f, indent=2, default=str, ensure_ascii=False)
-    with open(latest_path, "w", encoding="utf-8") as f:
-        json.dump(result_dict, f, indent=2, default=str, ensure_ascii=False)
-
+    for path in (filepath, latest_path):
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(result_dict, f, indent=2, default=str, ensure_ascii=False)
     logger.info("Saved %s validation evidence to %s", gate_name, filepath)
     return filepath
 
 
-def validate_primary_raw(df_raw: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
-    """Gate 1: Validates raw primary source before entering transformation.
+def _finalize_gate(
+    gate: str,
+    evidence_name: str,
+    suite_json: Dict[str, Any],
+    outcomes: List[Dict[str, Any]],
+    extra: Dict[str, Any],
+    batch_id: Optional[str],
+) -> Tuple[bool, Dict[str, Any]]:
+    overall_success, critical_failure, failed_critical, failed_warning = _apply_severity_policy(gate, outcomes)
+    if critical_failure:
+        pipeline_action = "STOP: Critical rule violated; downstream tasks must not run."
+    elif failed_warning:
+        pipeline_action = "CONTINUE_WITH_WARNING: Warning rules recorded; batch accepted per policy."
+    else:
+        pipeline_action = "CONTINUE: all rules passed."
 
-    Rules defined in gx/expectations/primary_raw_suite.json:
-      - DQ-RAW1-01 (Critical): Mandatory schema columns exist.
-      - DQ-RAW1-02 (Critical): FECHA HECHO format DD/MM/YYYY.
-      - DQ-RAW1-03 (Critical): CODIGO DANE length (8 characters).
-      - DQ-RAW1-04 (Critical): CANTIDAD positive integer >= 1.
-      - DQ-RAW1-05 (Warning): GENERO missingness <= 1%.
-    """
+    audit_payload = {
+        "gate": gate,
+        "suite_name": suite_json["name"],
+        "suite_file": f"gx/expectations/{suite_json['name']}.json",
+        "batch_id": batch_id,
+        "timestamp": datetime.now().isoformat(),
+        **extra,
+        "rules_evaluated": len(outcomes),
+        "overall_success": overall_success,
+        "critical_failure": critical_failure,
+        "failed_critical_rules": failed_critical,
+        "failed_warning_rules": failed_warning,
+        "pipeline_action": pipeline_action,
+        "results": outcomes,
+    }
+    audit_payload["evidence_file"] = _save_validation_result(evidence_name, audit_payload)
+
+    if critical_failure:
+        raise ValidationError(
+            f"{gate} failed with Critical severity (rules: {', '.join(failed_critical)}). "
+            f"Execution halted to protect downstream tasks. Evidence: {audit_payload['evidence_file']}"
+        )
+    logger.info("%s passed (%s).", gate, pipeline_action)
+    return True, audit_payload
+
+
+# ---------------------------------------------------------------------------
+# Gate 1 - Primary raw
+# ---------------------------------------------------------------------------
+def validate_primary_raw(df_raw: pd.DataFrame, batch_id: Optional[str] = None) -> Tuple[bool, Dict[str, Any]]:
+    """Gate 1: validates the raw primary batch against gx/expectations/primary_raw_suite.json."""
     logger.info("--- GATE 1: Validating Raw Primary Source (%d rows) ---", len(df_raw))
     suite_json = load_expectation_suite_json("primary_raw_suite")
 
-    context = gx.get_context(mode="ephemeral")
-    source_name = f"pandas_primary_raw_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}"
-    data_source = context.data_sources.add_pandas(source_name)
-    data_asset = data_source.add_dataframe_asset("primary_raw_asset")
-    batch_def = data_asset.add_batch_definition_whole_dataframe("batch_def_primary")
-
-    suite_name = "primary_raw_suite"
-    suite = context.suites.add(gx.ExpectationSuite(name=suite_name))
-
-    # Required columns
-    required_cols = [
-        "DEPARTAMENTO", "MUNICIPIO", "CODIGO DANE", "ARMAS MEDIOS",
-        "FECHA HECHO", "GENERO", "GRUPO ETARIO", "CANTIDAD"
-    ]
-    if suite_json and "expectations" in suite_json:
-        for exp in suite_json["expectations"]:
-            if exp.get("type") == "expect_table_columns_to_match_set":
-                required_cols = exp.get("kwargs", {}).get("column_set", required_cols)
-
-    # DQ-RAW1-01: Mandatory columns
-    suite.add_expectation(
-        gxe.ExpectTableColumnsToMatchSet(
-            column_set=required_cols,
-            exact_match=False,
-            notes="DQ-RAW1-01: Critical. Verifies mandatory schema columns exist."
-        )
-    )
-
-    # Prepare DataFrame copy with numeric conversion for CANTIDAD
     df_eval = df_raw.copy()
     if "CANTIDAD" in df_eval.columns:
         df_eval["CANTIDAD_NUMERIC"] = pd.to_numeric(df_eval["CANTIDAD"], errors="coerce")
-        # DQ-RAW1-04: CANTIDAD positive integer
-        suite.add_expectation(
-            gxe.ExpectColumnValuesToBeBetween(
-                column="CANTIDAD_NUMERIC",
-                min_value=1,
-                notes="DQ-RAW1-04: Critical. Measure CANTIDAD must be >= 1."
-            )
-        )
 
-    # DQ-RAW1-03: CODIGO DANE length (8 characters at centro poblado level)
-    if "CODIGO DANE" in df_eval.columns:
-        suite.add_expectation(
-            gxe.ExpectColumnValueLengthsToBeBetween(
-                column="CODIGO DANE",
-                min_value=8,
-                max_value=8,
-                mostly=0.9999,
-                notes="DQ-RAW1-03: Critical. DANE code must be 8-digit string."
-            )
-        )
-
-    # DQ-RAW1-05: GENERO null threshold <= 1%
-    if "GENERO" in df_eval.columns:
-        suite.add_expectation(
-            gxe.ExpectColumnValuesToNotBeNull(
-                column="GENERO",
-                mostly=0.99,
-                notes="DQ-RAW1-05: Warning. Null gender must not exceed 1%."
-            )
-        )
-
-    val_def = context.validation_definitions.add(
-        gx.ValidationDefinition(name="val_primary_raw", data=batch_def, suite=suite)
+    outcomes = _run_suite_on_dataframe(
+        df_eval, suite_json, "validate_primary_raw", "raw_primary_batch", suite_json["expectations"]
+    )
+    return _finalize_gate(
+        "validate_primary_raw", "primary_raw", suite_json, outcomes,
+        {"total_records": len(df_raw)}, batch_id,
     )
 
-    eval_result = val_def.run(batch_parameters={"dataframe": df_eval})
-    overall_success = eval_result.success
 
-    results_summary = []
-    critical_failure = False
-
-    for res in eval_result.results:
-        exp_type = res.expectation_config.type
-        notes = getattr(res.expectation_config, "notes", "") or ""
-        success = res.success
-        result_info = {
-            "expectation": exp_type,
-            "notes": notes,
-            "success": success,
-            "result_details": res.result
-        }
-        results_summary.append(result_info)
-
-        if not success:
-            if "Critical" in notes or "DQ-RAW1-01" in notes or "DQ-RAW1-03" in notes or "DQ-RAW1-04" in notes:
-                critical_failure = True
-                logger.error("CRITICAL FAILURE in Gate 1: %s (%s)", exp_type, notes)
-            else:
-                logger.warning("WARNING in Gate 1: %s (%s)", exp_type, notes)
-
-    audit_payload = {
-        "gate": "validate_primary_raw",
-        "suite_name": "primary_raw_suite",
-        "timestamp": datetime.now().isoformat(),
-        "total_records": len(df_raw),
-        "overall_success": overall_success,
-        "critical_failure": critical_failure,
-        "results": results_summary
-    }
-    _save_validation_result("primary_raw", audit_payload)
-
-    if critical_failure:
-        raise ValidationError(
-            "Gate 1 (Primary Raw Validation) failed with Critical severity. Execution halted to protect downstream tasks."
-        )
-
-    logger.info("Gate 1 (Primary Raw) passed successfully! All critical rules satisfied.")
-    return True, audit_payload
-
-
-def validate_api_raw(df_api: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
-    """Gate 2: Validates raw API source before entering transformation.
-
-    Rules defined in gx/expectations/api_raw_suite.json:
-      - DQ-RAW2-01 (Critical): Mandatory API fields present.
-      - DQ-RAW2-02 (Critical): c_digo_dane_municipio length 4-5 characters.
-      - DQ-RAW2-03 (Warning): categoria_municipio in statutory set {1,2,3,4,5,6,ESP}.
-      - DQ-RAW2-04 (Critical): existencia_de_comisarias >= 0.
-    """
+# ---------------------------------------------------------------------------
+# Gate 2 - API raw
+# ---------------------------------------------------------------------------
+def validate_api_raw(df_api: pd.DataFrame, batch_id: Optional[str] = None) -> Tuple[bool, Dict[str, Any]]:
+    """Gate 2: validates the normalized raw API payload against gx/expectations/api_raw_suite.json."""
     logger.info("--- GATE 2: Validating Raw API Source (%d rows) ---", len(df_api))
     suite_json = load_expectation_suite_json("api_raw_suite")
 
-    context = gx.get_context(mode="ephemeral")
-    source_name = f"pandas_api_raw_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}"
-    data_source = context.data_sources.add_pandas(source_name)
-    data_asset = data_source.add_dataframe_asset("api_raw_asset")
-    batch_def = data_asset.add_batch_definition_whole_dataframe("batch_def_api")
-
-    suite_name = "api_raw_suite"
-    suite = context.suites.add(gx.ExpectationSuite(name=suite_name))
-
-    required_cols = [
-        "c_digo_dane_municipio", "categoria_municipio",
-        "existencia_de_comisarias", "comisarias_ley_2126_100_000"
-    ]
-    if suite_json and "expectations" in suite_json:
-        for exp in suite_json["expectations"]:
-            if exp.get("type") == "expect_table_columns_to_match_set":
-                required_cols = exp.get("kwargs", {}).get("column_set", required_cols)
-
-    # DQ-RAW2-01: Mandatory columns
-    suite.add_expectation(
-        gxe.ExpectTableColumnsToMatchSet(
-            column_set=required_cols,
-            exact_match=False,
-            notes="DQ-RAW2-01: Critical. Mandatory API schema attributes must exist."
-        )
-    )
-
-    # DQ-RAW2-02: DANE length 4 to 5
-    if "c_digo_dane_municipio" in df_api.columns:
-        suite.add_expectation(
-            gxe.ExpectColumnValueLengthsToBeBetween(
-                column="c_digo_dane_municipio",
-                min_value=4,
-                max_value=5,
-                mostly=0.99,
-                notes="DQ-RAW2-02: Critical. API DANE code length must be between 4 and 5 characters."
-            )
-        )
-
-    # DQ-RAW2-04: Non-negative comisarías count
     df_eval = df_api.copy()
     if "existencia_de_comisarias" in df_eval.columns:
         df_eval["existencia_numeric"] = pd.to_numeric(df_eval["existencia_de_comisarias"], errors="coerce")
-        suite.add_expectation(
-            gxe.ExpectColumnValuesToBeBetween(
-                column="existencia_numeric",
-                min_value=0,
-                mostly=0.90,
-                notes="DQ-RAW2-04: Critical. Existing comisarías count must be non-negative."
-            )
-        )
 
-    # DQ-RAW2-03: Category in expected domain
-    if "categoria_municipio" in df_eval.columns:
-        suite.add_expectation(
-            gxe.ExpectColumnValuesToBeInSet(
-                column="categoria_municipio",
-                value_set=["1", "2", "3", "4", "5", "6", "ESP", "Especial", "None", None, ""],
-                mostly=0.95,
-                notes="DQ-RAW2-03: Warning. Municipal category domain validity."
-            )
-        )
-
-    val_def = context.validation_definitions.add(
-        gx.ValidationDefinition(name="val_api_raw", data=batch_def, suite=suite)
+    outcomes = _run_suite_on_dataframe(
+        df_eval, suite_json, "validate_api_raw", "raw_api_batch", suite_json["expectations"]
+    )
+    return _finalize_gate(
+        "validate_api_raw", "api_raw", suite_json, outcomes,
+        {"total_records": len(df_api)}, batch_id,
     )
 
-    eval_result = val_def.run(batch_parameters={"dataframe": df_eval})
-    overall_success = eval_result.success
 
-    results_summary = []
-    critical_failure = False
+# ---------------------------------------------------------------------------
+# Gate 3 - Prepared data
+# ---------------------------------------------------------------------------
+def validate_prepared_data(
+    tables: Dict[str, pd.DataFrame],
+    expected_totals: Dict[str, int],
+    batch_id: Optional[str] = None,
+) -> Tuple[bool, Dict[str, Any]]:
+    """Gate 3: validates prepared star-schema tables against gx/expectations/prepared_data_suite.json.
 
-    for res in eval_result.results:
-        exp_type = res.expectation_config.type
-        notes = getattr(res.expectation_config, "notes", "") or ""
-        success = res.success
-        result_info = {
-            "expectation": exp_type,
-            "notes": notes,
-            "success": success,
-            "result_details": res.result
-        }
-        results_summary.append(result_info)
-
-        if not success:
-            if "Critical" in notes or "DQ-RAW2-01" in notes or "DQ-RAW2-02" in notes:
-                critical_failure = True
-                logger.error("CRITICAL FAILURE in Gate 2: %s (%s)", exp_type, notes)
-            else:
-                logger.warning("WARNING in Gate 2: %s (%s)", exp_type, notes)
-
-    audit_payload = {
-        "gate": "validate_api_raw",
-        "suite_name": "api_raw_suite",
-        "timestamp": datetime.now().isoformat(),
-        "total_records": len(df_api),
-        "overall_success": overall_success,
-        "critical_failure": critical_failure,
-        "results": results_summary
-    }
-    _save_validation_result("api_raw", audit_payload)
-
-    if critical_failure:
-        raise ValidationError(
-            "Gate 2 (API Raw Validation) failed with Critical severity. Execution halted to protect downstream tasks."
-        )
-
-    logger.info("Gate 2 (API Raw) passed successfully! All critical rules satisfied.")
-    return True, audit_payload
-
-
-def validate_prepared_data(tables: Dict[str, pd.DataFrame], expected_totals: Dict[str, int]) -> Tuple[bool, Dict[str, Any]]:
-    """Gate 3: Validates transformed and integrated data before loading into the Data Warehouse.
-
-    Rules defined in gx/expectations/prepared_data_suite.json:
-      - DQ-PREP-01 (Critical): Fact table declared grain uniqueness (id_tiempo, id_geografia, id_victima, id_medio).
-      - DQ-PREP-02 (Critical): Zero null foreign keys in fact table.
-      - DQ-PREP-03 (Critical): Referential integrity (fact foreign keys must exist in dimensions).
-      - DQ-PREP-04 (Critical): Installed comisarías >= 0 in dim_geografia.
-      - DQ-PREP-05 (Critical): Total victim count reconciliation with raw source.
+    Each table referenced by ``meta.table`` is validated as its own GX batch. Referential integrity
+    and reconciliation thresholds are runtime parameters resolved from the prepared dimensions and
+    from the accepted raw batch totals.
     """
     logger.info("--- GATE 3: Validating Transformed & Integrated Prepared Data ---")
     suite_json = load_expectation_suite_json("prepared_data_suite")
 
-    fact = tables["fact_violencia_intrafamiliar"]
-    dim_geo = tables["dim_geografia"]
-    dim_tiempo = tables["dim_tiempo"]
-    dim_victima = tables["dim_victima"]
-    dim_medio = tables["dim_medio"]
-
-    grain = ["id_tiempo", "id_geografia", "id_victima", "id_medio"]
-    critical_failure = False
-    results_summary = []
-
-    # 1. Grain Uniqueness (DQ-PREP-01)
-    grain_duplicates = int(fact.duplicated(subset=grain).sum())
-    grain_pass = (grain_duplicates == 0)
-    results_summary.append({
-        "rule_id": "DQ-PREP-01",
-        "dimension": "Uniqueness",
-        "requirement": "R1–R7",
-        "description": "Fact table uniqueness at declared municipal grain",
-        "expected": "0 duplicates",
-        "actual": f"{grain_duplicates} duplicates",
-        "severity": "Critical",
-        "success": grain_pass
-    })
-    if not grain_pass:
-        critical_failure = True
-        logger.error("CRITICAL: Fact grain uniqueness violated! Found %d duplicates.", grain_duplicates)
-
-    # 2. Foreign Keys Not Null (DQ-PREP-02)
-    fk_nulls = {col: int(fact[col].isna().sum()) for col in grain}
-    total_fk_nulls = sum(fk_nulls.values())
-    fks_pass = (total_fk_nulls == 0)
-    results_summary.append({
-        "rule_id": "DQ-PREP-02",
-        "dimension": "Completeness",
-        "requirement": "R1–R7",
-        "description": "Foreign keys not null in fact table",
-        "expected": "0 nulls",
-        "actual": fk_nulls,
-        "severity": "Critical",
-        "success": fks_pass
-    })
-    if not fks_pass:
-        critical_failure = True
-        logger.error("CRITICAL: Found null foreign keys in fact table: %s", fk_nulls)
-
-    # 3. Referential Integrity (Fact -> Dimensions) (DQ-PREP-03)
-    ref_errors = {}
-    for col, dim_df, pk in [
-        ("id_tiempo", dim_tiempo, "id_tiempo"),
-        ("id_geografia", dim_geo, "id_geografia"),
-        ("id_victima", dim_victima, "id_victima"),
-        ("id_medio", dim_medio, "id_medio"),
-    ]:
-        orphans = set(fact[col]) - set(dim_df[pk])
-        if orphans:
-            ref_errors[col] = len(orphans)
-    ref_pass = (len(ref_errors) == 0)
-    results_summary.append({
-        "rule_id": "DQ-PREP-03",
-        "dimension": "Consistency",
-        "requirement": "R1–R7",
-        "description": "Referential integrity (fact foreign keys must exist in dimensions)",
-        "expected": "0 orphans",
-        "actual": ref_errors,
-        "severity": "Critical",
-        "success": ref_pass
-    })
-    if not ref_pass:
-        critical_failure = True
-        logger.error("CRITICAL: Referential integrity violation: %s", ref_errors)
-
-    # 4. Measure Reconciliation (DQ-PREP-05)
-    loaded_victims = int(fact["cantidad_victimas"].sum())
-    loaded_records = int(fact["numero_registros"].sum())
-    expected_victims = expected_totals.get("victims", 0)
-    expected_records = expected_totals.get("records", 0)
-
-    reconciled = (loaded_victims == expected_victims) and (loaded_records == expected_records)
-    results_summary.append({
-        "rule_id": "DQ-PREP-05",
-        "dimension": "Accuracy & Reconciliation",
-        "requirement": "All",
-        "description": "Reconciliation of measures between source extract and fact table",
-        "expected": f"victims={expected_victims}, records={expected_records}",
-        "actual": f"victims={loaded_victims}, records={loaded_records}",
-        "severity": "Critical",
-        "success": reconciled
-    })
-    if not reconciled:
-        critical_failure = True
-        logger.error(
-            "CRITICAL: Reconciliation failure! Expected: %d victims, %d records. Got: %d victims, %d records.",
-            expected_victims, expected_records, loaded_victims, loaded_records
-        )
-
-    # 5. Integration Key Plausibility in dim_geografia (DQ-PREP-04)
-    has_installed_valid = (dim_geo["comisarias_instaladas"] >= 0).all()
-    results_summary.append({
-        "rule_id": "DQ-PREP-04",
-        "dimension": "Validity",
-        "requirement": "R6, R7",
-        "description": "Enriched dim_geografia comisarias_instaladas non-negative",
-        "expected": ">= 0 for all rows",
-        "actual": f"min={dim_geo['comisarias_instaladas'].min()}",
-        "severity": "Critical",
-        "success": bool(has_installed_valid)
-    })
-    if not has_installed_valid:
-        critical_failure = True
-        logger.error("CRITICAL: Negative values in dim_geografia.comisarias_instaladas!")
-
-    audit_payload = {
-        "gate": "validate_prepared",
-        "suite_name": "prepared_data_suite",
-        "timestamp": datetime.now().isoformat(),
-        "total_fact_rows": len(fact),
-        "total_victims": loaded_victims,
-        "overall_success": not critical_failure,
-        "critical_failure": critical_failure,
-        "results": results_summary
+    runtime_params = {
+        "$dim_tiempo.id_tiempo": tables["dim_tiempo"]["id_tiempo"].dropna().unique().tolist(),
+        "$dim_geografia.id_geografia": tables["dim_geografia"]["id_geografia"].dropna().unique().tolist(),
+        "$dim_victima.id_victima": tables["dim_victima"]["id_victima"].dropna().unique().tolist(),
+        "$dim_medio.id_medio": tables["dim_medio"]["id_medio"].dropna().unique().tolist(),
+        "$expected_victims": int(expected_totals.get("victims", 0)),
+        "$expected_records": int(expected_totals.get("records", 0)),
     }
-    _save_validation_result("prepared", audit_payload)
 
-    if critical_failure:
-        raise ValidationError(
-            "Gate 3 (Prepared Data Validation) failed with Critical severity. DW load blocked to protect analytical integrity."
-        )
+    by_table: Dict[str, List[Dict[str, Any]]] = {}
+    for exp in suite_json["expectations"]:
+        by_table.setdefault(exp["meta"]["table"], []).append(exp)
 
-    logger.info("Gate 3 (Prepared Data) passed successfully! All dimensional invariants verified.")
-    return True, audit_payload
+    outcomes: List[Dict[str, Any]] = []
+    for table_name, exps in by_table.items():
+        if table_name not in tables:
+            raise KeyError(f"Prepared table '{table_name}' required by the suite was not produced.")
+        outcomes.extend(_run_suite_on_dataframe(
+            tables[table_name], suite_json, "validate_prepared", table_name, exps, runtime_params
+        ))
+
+    fact = tables["fact_violencia_intrafamiliar"]
+    extra = {
+        "total_fact_rows": len(fact),
+        "total_victims": int(fact["cantidad_victimas"].sum()),
+        "total_records": int(fact["numero_registros"].sum()),
+        "expected_victims": runtime_params["$expected_victims"],
+        "expected_records": runtime_params["$expected_records"],
+        "dim_geografia_rows": len(tables["dim_geografia"]),
+    }
+    return _finalize_gate("validate_prepared", "prepared", suite_json, outcomes, extra, batch_id)

@@ -35,10 +35,10 @@ from airflow.sdk import dag, task, Param
 
 # Airflow exception to halt task and downstream tasks immediately on Critical failure
 try:
-    from airflow.exceptions import AirflowFailException
+    from airflow.sdk.exceptions import AirflowFailException
 except ImportError:
     try:
-        from airflow.sdk.exceptions import AirflowFailException
+        from airflow.exceptions import AirflowFailException
     except ImportError:
         AirflowFailException = ValueError
 
@@ -125,24 +125,11 @@ def domestic_violence_pipeline():
         failure. Automatic retries would only waste cluster resources and delay failure notification.
         """
     )
-    def task_validate_primary_raw(primary_meta: dict, **context) -> dict:
+    def task_validate_primary_raw(primary_meta: dict) -> dict:
         """Evaluates raw primary data against Suite Primary Raw."""
         df_raw, _ = extract_primary_data(filepath=primary_meta["local_filepath"])
-
-        # Check execution parameters (Opciones Avanzadas in Airflow UI)
-        params = context.get("params", {})
-        dag_run = context.get("dag_run")
-        conf = dag_run.conf if dag_run else {}
-        test_mode = conf.get("test_mode", params.get("test_mode", "TEST_A_SUCCESSFUL_RUN"))
-
-        if test_mode in ["TEST_B_CONTROLLED_FAILURE", "test_b_controlled_failure"]:
-            import logging
-            logging.warning("=== [TEST B ACTIVATED] Injecting critical synthetic quality violation (null DEPARTAMENTO) ===")
-            df_raw = df_raw.copy()
-            df_raw.loc[df_raw.index[:500], "DEPARTAMENTO"] = None
-
         try:
-            passed, audit = validate_primary_raw(df_raw)
+            passed, audit = validate_primary_raw(df_raw, batch_id=primary_meta.get("sha256"))
         except ValidationError as e:
             raise AirflowFailException(
                 f"Gate 1 (Primary Raw) failed with Critical severity: {e}. Downstream tasks blocked."
@@ -158,7 +145,8 @@ def domestic_violence_pipeline():
             "passed": passed,
             "critical_failure": audit["critical_failure"],
             "total_records": audit["total_records"],
-            "local_filepath": primary_meta["local_filepath"]
+            "local_filepath": primary_meta["local_filepath"],
+            "sha256": primary_meta.get("sha256")
         }
 
     # -------------------------------------------------------------------------
@@ -199,11 +187,24 @@ def domestic_violence_pipeline():
         same extracted payload will inevitably fail again.
         """
     )
-    def task_validate_api_raw(api_meta: dict) -> dict:
+    def task_validate_api_raw(api_meta: dict, **context) -> dict:
         """Evaluates raw API data against Suite API Raw."""
-        df_api, _ = extract_api_data(force_refresh=False)
+        df_api, _ = extract_api_data(filepath=api_meta["local_filepath"])
+
+        # Check execution parameters (Opciones Avanzadas in Airflow UI)
+        params = context.get("params", {})
+        dag_run = context.get("dag_run")
+        conf = dag_run.conf if dag_run else {}
+        test_mode = conf.get("test_mode", params.get("test_mode", "TEST_A_SUCCESSFUL_RUN"))
+
+        # Inject controlled failure for Test B (DQ-RAW2-01 Schema Completeness violation)
+        if test_mode in ["TEST_B_CONTROLLED_FAILURE", "test_b_controlled_failure"]:
+            import logging
+            logging.warning("=== [TEST B ACTIVATED] Injecting Critical quality violation: removing mandatory column 'existencia_de_comisarias' from API raw batch ===")
+            df_api = df_api.drop(columns=["existencia_de_comisarias"], errors="ignore")
+
         try:
-            passed, audit = validate_api_raw(df_api)
+            passed, audit = validate_api_raw(df_api, batch_id=api_meta.get("sha256"))
         except ValidationError as e:
             raise AirflowFailException(
                 f"Gate 2 (API Raw) failed with Critical severity: {e}. Downstream tasks blocked."
@@ -219,7 +220,8 @@ def domestic_violence_pipeline():
             "passed": passed,
             "critical_failure": audit["critical_failure"],
             "total_records": audit["total_records"],
-            "local_filepath": api_meta["local_filepath"]
+            "local_filepath": api_meta["local_filepath"],
+            "sha256": api_meta.get("sha256")
         }
 
     # -------------------------------------------------------------------------
@@ -248,7 +250,7 @@ def domestic_violence_pipeline():
             )
 
         df_p, manifest_p = extract_primary_data(filepath=primary_val_meta.get("local_filepath"))
-        df_a, manifest_a = extract_api_data()
+        df_a, manifest_a = extract_api_data(filepath=api_val_meta.get("local_filepath"))
 
         trans_res = transform_and_integrate_all(df_p, df_a)
         tables = build_star_schema(
@@ -266,7 +268,10 @@ def domestic_violence_pipeline():
             df.to_parquet(path, index=False)
             persisted_paths[name] = path
 
+        batch_id = f"integrated_{primary_val_meta.get('sha256', '')[:8]}_{api_val_meta.get('sha256', '')[:8]}"
+
         return {
+            "batch_id": batch_id,
             "persisted_paths": persisted_paths,
             "expected_victims": manifest_p["total_victims_raw"],
             "expected_records": manifest_p["row_count"],
@@ -301,7 +306,9 @@ def domestic_violence_pipeline():
             "records": prepared_meta["expected_records"]
         }
         try:
-            passed, audit = validate_prepared_data(tables, expected_totals)
+            passed, audit = validate_prepared_data(
+                tables, expected_totals, batch_id=prepared_meta.get("batch_id")
+            )
         except ValidationError as e:
             raise AirflowFailException(
                 f"Gate 3 (Prepared Data) failed with Critical severity: {e}. DW load blocked."
@@ -316,6 +323,7 @@ def domestic_violence_pipeline():
             "gate": "validate_prepared",
             "passed": passed,
             "critical_failure": audit["critical_failure"],
+            "batch_id": prepared_meta.get("batch_id"),
             "persisted_paths": prepared_meta["persisted_paths"],
             "expected_victims": prepared_meta["expected_victims"],
             "expected_records": prepared_meta["expected_records"]

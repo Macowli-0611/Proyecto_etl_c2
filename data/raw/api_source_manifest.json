@@ -2,9 +2,9 @@
   "source_name": "Caracterización de las comisarías de familia en el territorio nacional",
   "provider": "Ministerio de Justicia y del Derecho / Presidencia de la República",
   "api_endpoint": "https://www.datos.gov.co/resource/7tuu-upb2.json",
-  "extraction_timestamp": "2026-10-21T04:39:18.288408",
-  "local_filepath": "/opt/airflow/data/raw/api_comisarias_raw.json",
-  "sha256": "70f33eab61b7421baa685e5324fffeb41517fbdfde39d7bab7942a797b4148af",
+  "extraction_timestamp": "2026-10-21T17:29:32.608763",
+  "local_filepath": "/Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/data/raw/api_comisarias_raw.json",
+  "sha256": "844b7e238d059bfe426213c425c84da5286dab136c56fbd4f65a54a369f3957e",
   "row_count": 1249,
   "columns": [
     "c_digo_dane_departamento",
@@ -23,5 +23,6 @@
     "latitud_de_ubicaci_n_de_la",
     "coordenadas_de_ubicaci_n"
   ],
-  "distinct_municipalities_raw": 1102
+  "distinct_municipalities_raw": 1102,
+  "fallback_to_cache": false
 }
