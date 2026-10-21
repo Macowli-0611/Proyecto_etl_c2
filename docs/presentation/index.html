@@ -1,0 +1,1817 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sustentación Proyecto 2: Pipeline ETL Resiliente y Data Warehouse Dimensional</title>
+  <meta name="description" content="Presentación interactiva de sustentación técnica para la Segunda Entrega del Proyecto ETL: Violencia Intrafamiliar y Comisarías de Familia en Colombia.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0e1a;
+      --bg-card: #121829;
+      --bg-card-hover: #18223a;
+      --border-color: #1e293b;
+      --border-highlight: #3b82f6;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent-blue: #38bdf8;
+      --accent-indigo: #6366f1;
+      --accent-emerald: #10b981;
+      --accent-rose: #f43f5e;
+      --accent-amber: #f59e0b;
+      --accent-purple: #a855f7;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --shadow-card: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      --shadow-glow: 0 0 20px rgba(56, 189, 248, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+      user-select: none;
+    }
+
+    /* Top Progress Bar */
+    #progress-bar-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      z-index: 100;
+    }
+
+    #progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-indigo), var(--accent-blue), var(--accent-emerald));
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Global Header */
+    header {
+      position: fixed;
+      top: 4px;
+      left: 0;
+      right: 0;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      background: rgba(10, 14, 26, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 90;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-main);
+      letter-spacing: -0.01em;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, var(--accent-indigo), var(--accent-blue));
+      color: white;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-icon {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.9rem;
+    }
+
+    .btn-icon:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-main);
+      border-color: var(--accent-blue);
+    }
+
+    .slide-counter {
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    /* Slides Deck Container */
+    #deck {
+      position: relative;
+      width: 100vw;
+      height: calc(100vh - 54px - 48px);
+      margin-top: 54px;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      padding: 32px 54px;
+      display: flex;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateX(60px);
+      transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow-y: auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateX(0);
+    }
+
+    .slide.prev {
+      transform: translateX(-60px);
+      opacity: 0;
+    }
+
+    /* Slide Header */
+    .slide-header {
+      margin-bottom: 22px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 14px;
+    }
+
+    .slide-tag {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-blue);
+      margin-bottom: 4px;
+    }
+
+    .slide-title {
+      font-size: 1.85rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .slide-subtitle {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+      max-width: 850px;
+    }
+
+    .slide-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* Layout Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      height: 100%;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .grid-sidebar {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 24px;
+      height: 100%;
+    }
+
+    .grid-main-side {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 22px;
+      height: 100%;
+    }
+
+    /* Card Component */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card.highlight {
+      border-color: rgba(56, 189, 248, 0.4);
+      background: linear-gradient(145deg, rgba(18, 24, 41, 0.95), rgba(30, 41, 59, 0.6));
+    }
+
+    .card.accent-emerald {
+      border-left: 4px solid var(--accent-emerald);
+    }
+
+    .card.accent-blue {
+      border-left: 4px solid var(--accent-blue);
+    }
+
+    .card.accent-amber {
+      border-left: 4px solid var(--accent-amber);
+    }
+
+    .card.accent-rose {
+      border-left: 4px solid var(--accent-rose);
+    }
+
+    .card.accent-indigo {
+      border-left: 4px solid var(--accent-indigo);
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .card-subtitle {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    /* Metric Badge & Pill */
+    .metric-value {
+      font-family: var(--font-mono);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .metric-label {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 4px;
+    }
+
+    .pill {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      width: fit-content;
+    }
+
+    .pill.emerald { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .pill.blue { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .pill.rose { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244, 63, 94, 0.3); }
+    .pill.amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .pill.purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+
+    /* Lists */
+    ul.check-list, ol.num-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+    }
+
+    ul.check-list li {
+      position: relative;
+      padding-left: 22px;
+      line-height: 1.45;
+    }
+
+    ul.check-list li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--accent-emerald);
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+
+    ol.num-list {
+      counter-reset: custom-counter;
+    }
+
+    ol.num-list li {
+      counter-increment: custom-counter;
+      position: relative;
+      padding-left: 26px;
+      line-height: 1.45;
+    }
+
+    ol.num-list li::before {
+      content: counter(custom-counter);
+      position: absolute;
+      left: 0;
+      top: 1px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--accent-blue);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    /* Tables */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      text-align: left;
+    }
+
+    table.data-table th {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.72rem;
+      padding: 10px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    table.data-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: #cbd5e1;
+    }
+
+    table.data-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    table.data-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Images & Lightbox Trigger */
+    .img-preview-box {
+      position: relative;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+      background: #000;
+      cursor: zoom-in;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      max-height: 100%;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .img-preview-box:hover {
+      border-color: var(--accent-blue);
+      box-shadow: var(--shadow-glow);
+    }
+
+    .img-preview-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      transition: opacity 0.2s;
+    }
+
+    .zoom-hint {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: rgba(0, 0, 0, 0.75);
+      color: white;
+      font-size: 0.72rem;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Lightbox Modal */
+    #lightbox {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(4, 7, 15, 0.94);
+      backdrop-filter: blur(10px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      flex-direction: column;
+    }
+
+    #lightbox.active {
+      display: flex;
+    }
+
+    #lightbox img {
+      max-width: 94vw;
+      max-height: 86vh;
+      object-fit: contain;
+      border-radius: var(--radius-md);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    #lightbox-caption {
+      margin-top: 14px;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      font-family: var(--font-mono);
+      text-align: center;
+    }
+
+    #lightbox-close {
+      position: absolute;
+      top: 20px;
+      right: 24px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    #lightbox-close:hover {
+      background: var(--accent-rose);
+    }
+
+    /* Code Snippets */
+    .code-block {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      background: rgba(0, 0, 0, 0.45);
+      padding: 12px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      color: #38bdf8;
+      overflow-x: auto;
+      line-height: 1.45;
+    }
+
+    /* Global Navigation Footer */
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 28px;
+      background: rgba(10, 14, 26, 0.92);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      z-index: 90;
+    }
+
+    .nav-hints {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+
+    .key-badge {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-btn:hover {
+      background: var(--accent-indigo);
+      border-color: var(--accent-indigo);
+      color: white;
+    }
+
+    .nav-btn:disabled {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    /* Table of Contents Drawer */
+    #toc-drawer {
+      position: fixed;
+      top: 54px;
+      right: -360px;
+      width: 360px;
+      height: calc(100vh - 54px);
+      background: rgba(14, 20, 36, 0.96);
+      backdrop-filter: blur(16px);
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 95;
+      padding: 24px;
+      transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow-y: auto;
+      box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+    }
+
+    #toc-drawer.open {
+      right: 0;
+    }
+
+    .toc-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--text-main);
+    }
+
+    .toc-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toc-item {
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+    }
+
+    .toc-item:hover {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+    }
+
+    .toc-item.active {
+      background: rgba(56, 189, 248, 0.12);
+      border-color: rgba(56, 189, 248, 0.3);
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+
+    .toc-idx {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        overflow: visible !important;
+        height: auto !important;
+        background: #fff !important;
+        color: #000 !important;
+      }
+      header, footer, #progress-bar-container, #toc-drawer {
+        display: none !important;
+      }
+      #deck {
+        margin: 0 !important;
+        height: auto !important;
+      }
+      .slide {
+        position: relative !important;
+        opacity: 1 !important;
+        transform: none !important;
+        page-break-after: always !important;
+        height: 100vh !important;
+        padding: 20px !important;
+      }
+      .card {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #000 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Progress Bar -->
+  <div id="progress-bar-container">
+    <div id="progress-bar"></div>
+  </div>
+
+  <!-- Global Header -->
+  <header>
+    <div class="brand">
+      <span class="brand-badge">Entrega 2</span>
+      <span>ETL Violencia Intrafamiliar & Comisarías</span>
+    </div>
+    <div class="header-actions">
+      <div class="slide-counter" id="slide-indicator">01 / 14</div>
+      <button class="btn-icon" id="btn-toc" title="Tabla de Contenidos (T)">☰</button>
+      <button class="btn-icon" id="btn-fullscreen" title="Pantalla Completa (F)">⛶</button>
+    </div>
+  </header>
+
+  <!-- Slide Deck Container -->
+  <main id="deck">
+
+    <!-- SLIDE 1: PORTADA -->
+    <section class="slide active" data-slide="1">
+      <div style="height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; max-width: 980px; margin: 0 auto;">
+        <div class="pill purple" style="margin-bottom: 18px; font-size: 0.85rem; padding: 6px 16px;">
+          Sustentación de Arquitectura e Ingeniería de Datos (4.0/4.0 + 1.0/1.0)
+        </div>
+        <h1 style="font-size: 2.85rem; font-weight: 800; letter-spacing: -0.03em; line-height: 1.15; margin-bottom: 16px; background: linear-gradient(135deg, #ffffff 40%, var(--accent-blue) 80%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+          Pipeline ETL Resiliente & Data Warehouse Dimensional
+        </h1>
+        <p style="font-size: 1.15rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 28px; max-width: 820px;">
+          Integración del registro histórico de violencia intrafamiliar (Policía Nacional) con el directorio institucional de Comisarías de Familia (API REST SODA - MinJusticia).
+        </p>
+        
+        <div class="grid-4" style="width: 100%; margin-bottom: 32px;">
+          <div class="card" style="padding: 14px; text-align: center;">
+            <div class="metric-value" style="color: var(--accent-blue); font-size: 1.7rem;">704,551</div>
+            <div class="metric-label">Registros Primarios</div>
+          </div>
+          <div class="card" style="padding: 14px; text-align: center;">
+            <div class="metric-value" style="color: var(--accent-emerald); font-size: 1.7rem;">1,501,809</div>
+            <div class="metric-label">Víctimas Reconciliadas</div>
+          </div>
+          <div class="card" style="padding: 14px; text-align: center;">
+            <div class="metric-value" style="color: var(--accent-indigo); font-size: 1.7rem;">16 Reglas</div>
+            <div class="metric-label">Gates GX 1.X</div>
+          </div>
+          <div class="card" style="padding: 14px; text-align: center;">
+            <div class="metric-value" style="color: var(--accent-amber); font-size: 1.7rem;">3 Tests</div>
+            <div class="metric-label">Confiabilidad A/B/C</div>
+          </div>
+        </div>
+
+        <div style="font-size: 0.85rem; color: var(--text-dim); display: flex; gap: 24px; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.08); padding-top: 16px;">
+          <span><strong>Stack:</strong> Airflow 3.1.8 Task SDK • Great Expectations 1.X • PostgreSQL 16 • Power BI</span>
+          <span>•</span>
+          <span><strong>Estado:</strong> 100% Validado & Sincronizado</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 2: ALCANCE ANALÍTICO R1-R7 -->
+    <section class="slide" data-slide="2">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Requisitos Analíticos & Valor del Negocio</div>
+          <h2 class="slide-title">Continuidad R1–R5 y Nuevos Requisitos R6–R7</h2>
+          <div class="slide-subtitle">Transición desde la línea base descriptiva hacia la analítica de capacidad de respuesta institucional mediante la API SODA.</div>
+        </div>
+        <span class="pill blue">Secciones 3 y 4</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-2">
+          <!-- Columna R1-R5 -->
+          <div class="card accent-indigo">
+            <div class="card-title">
+              <span>Línea Base: Continuidad R1–R5</span>
+              <span class="pill purple">Fuente Primaria</span>
+            </div>
+            <div class="card-subtitle">Monitoreo histórico, temporal, demográfico y geográfico (Policía Nacional).</div>
+            <ul class="check-list" style="gap: 12px;">
+              <li><strong>R1 (Evolución Anual):</strong> Serie de tiempo 2010–2026. Identificación de picos post-pandemia (>150k víctimas en 2024).</li>
+              <li><strong>R2 (Concentración Geográfica):</strong> Departamentos con mayor volumen. Bogotá D.C., Antioquia y Cundinamarca concentran >45%.</li>
+              <li><strong>R3 (Brecha de Género):</strong> Desagregación por sexo y grupos etarios. El 76.8% de las víctimas son mujeres en edad productiva.</li>
+              <li><strong>R4 (Mecanismos de Agresión):</strong> Prevalencia de armas contundentes y violencia física directa (>90% de casos).</li>
+              <li><strong>R5 (Vulnerabilidad de Menores):</strong> Distribución departamental de violencia contra niños, niñas y adolescentes.</li>
+            </ul>
+          </div>
+
+          <!-- Columna R6-R7 -->
+          <div class="card accent-emerald highlight">
+            <div class="card-title">
+              <span>Valor Agregado API: Requisitos R6 y R7</span>
+              <span class="pill emerald">Integración API SODA</span>
+            </div>
+            <div class="card-subtitle">Cruces matemáticos entre la demanda de auxilio y la oferta institucional real.</div>
+            
+            <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 6px;">
+              <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-sm); padding: 14px;">
+                <div style="font-weight: 700; color: #34d399; font-size: 0.95rem; margin-bottom: 4px;">R6: Sobrecarga Institucional por Municipio</div>
+                <div style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.4;">
+                  Calcula el ratio de <code>casos_por_comisaria = denuncias_totales / comisarias_activas</code>. Permite detectar municipios donde cada comisaría atiende más de 1,000 incidentes al año (ej. Soacha, Cali, Medellín).
+                </div>
+              </div>
+
+              <div style="background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: var(--radius-sm); padding: 14px;">
+                <div style="font-weight: 700; color: #38bdf8; font-size: 0.95rem; margin-bottom: 4px;">R7: Índice de Prioridad Institucional (Vacío de Cobertura)</div>
+                <div style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.4;">
+                  Identifica municipios con presencia significativa de violencia intrafamiliar pero con <strong>0 comisarías habilitadas</strong>. Prioriza la apertura urgente de sedes de justicia familiar en 29 municipios críticos.
+                </div>
+              </div>
+
+              <div class="pill amber" style="margin-top: 4px;">
+                Cumplimiento estricto: R6 y R7 requieren obligatoriamente datos de ambas fuentes.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 3: ARQUITECTURA DEL SISTEMA -->
+    <section class="slide" data-slide="3">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Ingeniería & Pipeline</div>
+          <h2 class="slide-title">Arquitectura del Sistema y Flujo End-to-End</h2>
+          <div class="slide-subtitle">Diseño dual-branch con compuertas de calidad no bloqueantes a nivel profiling y compuertas críticas atómicas.</div>
+        </div>
+        <span class="pill blue">Sección 7</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-main-side">
+          <!-- Diagrama de Flujo -->
+          <div class="card" style="padding: 10px;">
+            <div class="img-preview-box" onclick="openLightbox('docs/Pipeline Workflow ETL-C2.png', 'Diagrama de Arquitectura y Pipeline Workflow ETL-C2')">
+              <img src="docs/Pipeline Workflow ETL-C2.png" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src='../Pipeline Workflow ETL-C2.png';}" alt="Pipeline Workflow">
+              <div class="zoom-hint">🔍 Clic para ampliar</div>
+            </div>
+          </div>
+
+          <!-- Decisiones de Ingeniería -->
+          <div class="card">
+            <div class="card-title">Decisiones Clave de Arquitectura</div>
+            <ul class="check-list" style="gap: 12px; margin-top: 6px;">
+              <li><strong>Desacoplamiento Estricto:</strong> Se separa el profiling de la transformación, y la validación de la limpieza (Sección 10).</li>
+              <li><strong>Arquitectura Dual-Branch:</strong> Ambas ramas (primaria y API) se extraen y validan en paralelo antes de confluir en la integración.</li>
+              <li><strong>Inmutabilidad de Raw:</strong> Los datos crudos se preservan intactos junto con sus manifiestos criptográficos (SHA-256).</li>
+              <li><strong>Task Interfaces Ligeras:</strong> Se evita usar XCom para mover datos masivos; solo transfiere metadatos (`batch_id`, paths parquet, métricas).</li>
+              <li><strong>Carga Atómica:</strong> PostgreSQL ejecuta la carga de 6 tablas y vistas analíticas dentro de una sola transacción ACID.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 4: ENTENDIMIENTO DE FUENTES & API SODA -->
+    <section class="slide" data-slide="4">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Adquisición de Datos</div>
+          <h2 class="slide-title">Entendimiento de Fuentes, Extracción y Fallback</h2>
+          <div class="slide-subtitle">Estrategia de ingesta programática resiliente ante cortes de red y trazabilidad criptográfica.</div>
+        </div>
+        <span class="pill emerald">Secciones 5 y 11</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-2">
+          <!-- Fuente Primaria -->
+          <div class="card accent-indigo">
+            <div class="card-title">
+              <span>Fuente Primaria: Policía Nacional</span>
+              <span class="pill blue">704,551 filas</span>
+            </div>
+            <div class="card-subtitle">Histórico consolidado de incidentes de violencia intrafamiliar en Colombia (2010–2026).</div>
+            <div class="table-container" style="margin-bottom: 12px;">
+              <table class="data-table">
+                <tr><th>Atributo</th><th>Tipo</th><th>Propósito</th></tr>
+                <tr><td><code>FECHA HECHO</code></td><td>Date</td><td>Clave temporal para dim_tiempo</td></tr>
+                <tr><td><code>CODIGO DANE</code></td><td>String (5)</td><td>Clave de integración con dim_geografia</td></tr>
+                <tr><td><code>GENERO / EDAD</code></td><td>String/Int</td><td>Perfil demográfico en dim_victima</td></tr>
+                <tr><td><code>ARMAS MEDIOS</code></td><td>String</td><td>Mecanismo de agresión en dim_medio</td></tr>
+                <tr><td><code>CANTIDAD</code></td><td>Integer</td><td>Métrica aditiva de víctimas humanas</td></tr>
+              </table>
+            </div>
+            <div class="code-block">SHA-256: 7d6c66cf01826f56... (Inmutable)</div>
+          </div>
+
+          <!-- Fuente Secundaria API -->
+          <div class="card accent-emerald">
+            <div class="card-title">
+              <span>Fuente Secundaria: API REST SODA</span>
+              <span class="pill emerald">1,249 registros</span>
+            </div>
+            <div class="card-subtitle">Directorio oficial de Comisarías de Familia (MinJusticia / datos.gov.co: <code>7tuu-upb2</code>).</div>
+            <div class="table-container" style="margin-bottom: 12px;">
+              <table class="data-table">
+                <tr><th>Atributo API</th><th>Tipo</th><th>Mapeo Dimensional</th></tr>
+                <tr><td><code>c_digo_dane_del_municipio</code></td><td>Text</td><td>Llave de cruce municipal (DANE)</td></tr>
+                <tr><td><code>existencia_de_comisarias</code></td><td>Text</td><td>Indicador de presencia (SI / NO)</td></tr>
+                <tr><td><code>nombre_de_la_comisar_a</code></td><td>Text</td><td>Directorio físico en dim_comisaria</td></tr>
+                <tr><td><code>modalidad</code></td><td>Text</td><td>Tipo institucional (Única, Mixta)</td></tr>
+              </table>
+            </div>
+            
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--radius-sm); padding: 10px;">
+              <strong style="color: #34d399; font-size: 0.85rem;">Mecanismo de Resiliencia (Fallback):</strong>
+              <div style="font-size: 0.8rem; color: #cbd5e1; margin-top: 3px;">
+                La consulta SODA se ejecuta en vivo con timeout de 30s. Si ocurre desconexión, activa automáticamente el respaldo local en <code>data/raw/api_comisarias_fallback.json</code> registrando <code>fallback_to_cache: True</code> en el manifiesto.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 5: COMPUERTAS GREAT EXPECTATIONS -->
+    <section class="slide" data-slide="5">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Aseguramiento de Calidad</div>
+          <h2 class="slide-title">Gates Automatizados con Great Expectations (GX 1.X)</h2>
+          <div class="slide-subtitle">Arquitectura de 3 compuertas de validación con severidades tipificadas (Critical vs Warning) y umbrales justificados.</div>
+        </div>
+        <span class="pill amber">Secciones 9 y 10</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-3" style="height: 100%;">
+          <!-- Gate 1 -->
+          <div class="card accent-blue">
+            <div class="card-title">
+              <span>Gate 1: Raw Primario</span>
+              <span class="pill blue">6 Reglas</span>
+            </div>
+            <div class="card-subtitle">Audita integridad de entrada del dataset policial crudo.</div>
+            <ul class="check-list" style="font-size: 0.82rem; gap: 8px;">
+              <li><code>DQ-RAW1-01</code> (Critical): Completitud de 9 columnas obligatorias.</li>
+              <li><code>DQ-RAW1-02</code> (Critical): 0 nulos en Fecha Hecho.</li>
+              <li><code>DQ-RAW1-03</code> (Critical): Fechas en rango histórico válido (sin fechas futuras).</li>
+              <li><code>DQ-RAW1-04</code> (Critical): Cantidad víctimas > 0 (sin negativos ni ceros).</li>
+              <li><code>DQ-RAW1-05</code> (Warning): Código DANE entre 4 y 5 dígitos (tolera padding).</li>
+              <li><code>DQ-RAW1-06</code> (Critical): 0 filas duplicadas completas.</li>
+            </ul>
+            <div class="pill emerald" style="margin-top: auto;">Resultado: 100% Passed (704,551 filas)</div>
+          </div>
+
+          <!-- Gate 2 -->
+          <div class="card accent-rose">
+            <div class="card-title">
+              <span>Gate 2: Raw API SODA</span>
+              <span class="pill rose">5 Reglas</span>
+            </div>
+            <div class="card-subtitle">Protege la ingesta del directorio de comisarías.</div>
+            <ul class="check-list" style="font-size: 0.82rem; gap: 8px;">
+              <li><code>DQ-RAW2-01</code> (Critical): Presencia de 6 columnas requeridas por el contrato.</li>
+              <li><code>DQ-RAW2-02</code> (Critical): 0 nulos en Departamento.</li>
+              <li><code>DQ-RAW2-03</code> (Critical): Formato regex de código DANE (5 dígitos numéricos).</li>
+              <li><code>DQ-RAW2-04</code> (Critical): Valores válidos en <code>existencia_de_comisarias</code>.</li>
+              <li><code>DQ-RAW2-05</code> (Warning): Volumen mínimo esperado (>1,000 registros).</li>
+            </ul>
+            <div class="pill emerald" style="margin-top: auto;">Resultado: 100% Passed (1,249 filas)</div>
+          </div>
+
+          <!-- Gate 3 -->
+          <div class="card accent-emerald">
+            <div class="card-title">
+              <span>Gate 3: Prepared Data</span>
+              <span class="pill emerald">5 Suites / 13 Reglas</span>
+            </div>
+            <div class="card-subtitle">Verificación de pre-carga al Data Warehouse.</div>
+            <ul class="check-list" style="font-size: 0.82rem; gap: 8px;">
+              <li><code>DQ-PREP-01</code> (Critical): Unicidad del grano declarado en la Fact Table.</li>
+              <li><code>DQ-PREP-02</code> (Critical): Integridad referencial (FKs no nulas).</li>
+              <li><code>DQ-PREP-03</code> (Critical): Reconciliación matemática exacta de víctimas.</li>
+              <li><code>DQ-PREP-04</code> (Critical): 0 claves foráneas huérfanas en dimensiones.</li>
+              <li><code>DQ-PREP-05</code> (Critical): Unicidad de surrogate keys en dimensiones.</li>
+            </ul>
+            <div class="pill emerald" style="margin-top: auto;">Resultado: 100% Passed (Pre-load OK)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 6: CONTRATO DE INTEGRACIÓN & TRANSFORMACIÓN -->
+    <section class="slide" data-slide="6">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Ingeniería de Transformación</div>
+          <h2 class="slide-title">Contrato de Integración y Deduplicación al Grano</h2>
+          <div class="slide-subtitle">Tratamiento de llaves dispares, reconciliación geográfica y deduplicación con conservación exacta de métricas.</div>
+        </div>
+        <span class="pill blue">Sección 13</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-2">
+          <!-- Contrato de Integración -->
+          <div class="card">
+            <div class="card-title">
+              <span>Contrato de Integración Geográfica</span>
+              <span class="pill blue">DANE 5 Dígitos</span>
+            </div>
+            <div class="card-subtitle">Estrategia para resolver discrepancias entre catálogo policial y directorio judicial.</div>
+            <ul class="check-list" style="gap: 12px;">
+              <li><strong>Normalización de Clave:</strong> Relleno a 5 dígitos (<code>zfill(5)</code>) para eliminar desajustes entre <code>"5001"</code> y <code>"05001"</code> (Medellín).</li>
+              <li><strong>Tratamiento de Nombres:</strong> Limpieza y estandarización a Title-Case para eliminar discrepancias de tildes y mayúsculas.</li>
+              <li><strong>Manejo de Casos de Borde (2 Municipios Especiales):</strong> El directorio API reporta 2 municipios con comisarías pero 0 denuncias policiales registradas. Se preservan en <code>dim_geografia</code> con sus métricas institucionales sin generar claves huérfanas.</li>
+              <li><strong>Enriquecimiento Institucional:</strong> Se computan las columnas de soporte <code>total_comisarias</code> y <code>tiene_comisaria</code> en la dimensión geográfica.</li>
+            </ul>
+          </div>
+
+          <!-- Deduplicación al Grano -->
+          <div class="card highlight">
+            <div class="card-title">
+              <span>Deduplicación al Grano Declarado</span>
+              <span class="pill emerald">0 Pérdida de Métricas</span>
+            </div>
+            <div class="card-subtitle">Colapso de registros redundantes a nivel de incidente/perfil demográfico.</div>
+            
+            <div style="background: rgba(0,0,0,0.3); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 14px;">
+              <div style="font-family: var(--font-mono); font-size: 0.85rem; color: #38bdf8; margin-bottom: 6px;">
+                Grano: (id_tiempo, id_geografia, id_victima, id_medio)
+              </div>
+              <div style="font-size: 0.82rem; color: #cbd5e1; line-height: 1.4;">
+                En el dataset original existen múltiples registros para una misma fecha, municipio, perfil de víctima y arma. Se colapsan sumando las métricas aditivas.
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-top: auto;">
+              <div style="text-align: center; background: rgba(255,255,255,0.03); padding: 12px; border-radius: var(--radius-sm);">
+                <div style="font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700; color: #fb7185;">2,837</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Registros Colapsados</div>
+              </div>
+              <div style="text-align: center; background: rgba(255,255,255,0.03); padding: 12px; border-radius: var(--radius-sm);">
+                <div style="font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700; color: #34d399;">1,501,809</div>
+                <div style="font-size: 0.75rem; color: var(--text-muted);">Víctimas Conservadas (100%)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 7: MODELO DIMENSIONAL REFINADO -->
+    <section class="slide" data-slide="7">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Diseño de Almacenamiento</div>
+          <h2 class="slide-title">Refinamiento del Modelo Dimensional (Star Schema)</h2>
+          <div class="slide-subtitle">Construcción de 5 dimensiones conformadas y 1 tabla de hechos granular con soporte para R1–R7.</div>
+        </div>
+        <span class="pill blue">Sección 8</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-main-side">
+          <!-- Diagrama Dimensional -->
+          <div class="card" style="padding: 10px;">
+            <div class="img-preview-box" onclick="openLightbox('docs/Dimensional Modeling ETL-C2.png', 'Modelo Dimensional Refinado - Esquema en Estrella')">
+              <img src="docs/Dimensional Modeling ETL-C2.png" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src='../Dimensional Modeling ETL-C2.png';}" alt="Dimensional Modeling">
+              <div class="zoom-hint">🔍 Clic para ampliar esquema</div>
+            </div>
+          </div>
+
+          <!-- Especificaciones de Tablas -->
+          <div class="card">
+            <div class="card-title">Estructura del Esquema en Estrella</div>
+            <div class="table-container" style="margin-top: 6px;">
+              <table class="data-table">
+                <tr><th>Tabla</th><th>Tipo</th><th>Filas</th><th>Rol</th></tr>
+                <tr><td><code>fact_violencia</code></td><td>Fact</td><td>701,714</td><td>Hechos a grano atómico con FKs y métricas</td></tr>
+                <tr><td><code>dim_tiempo</code></td><td>Dim</td><td>6,056</td><td>Calendario completo (2010–2026)</td></tr>
+                <tr><td><code>dim_geografia</code></td><td>Dim</td><td>1,113</td><td>Municipios con indicadores de comisarías</td></tr>
+                <tr><td><code>dim_victima</code></td><td>Dim</td><td>11</td><td>Cohortes de género y grupo etario</td></tr>
+                <tr><td><code>dim_medio</code></td><td>Dim</td><td>6</td><td>Armas y mecanismos agresores</td></tr>
+                <tr><td><code>dim_comisaria</code></td><td>Dim</td><td>1,247</td><td>Directorio físico de sedes institucionales</td></tr>
+              </table>
+            </div>
+
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 14px; line-height: 1.45;">
+              <strong>Características Técnicas:</strong> Surrogate keys enteras (`BIGINT`/`INT`), índices B-Tree en llaves foráneas, restricción única `uq_fact_grano` para evitar duplicación y vistas analíticas materializadas para Power BI.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 8: ORQUESTACIÓN AIRFLOW 3 & RETRIES -->
+    <section class="slide" data-slide="8">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Orquestación de Procesos</div>
+          <h2 class="slide-title">Orquestación en Airflow 3 Task SDK & Reintentos Selectivos</h2>
+          <div class="slide-subtitle">Diseño declarativo moderno (@dag, @task) con política estricta de reintentos basada en la naturaleza del fallo.</div>
+        </div>
+        <span class="pill purple">Secciones 16, 17 y 18</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-2">
+          <!-- Grafo y SDK -->
+          <div class="card">
+            <div class="card-title">
+              <span>Arquitectura Airflow 3 Task SDK</span>
+              <span class="pill blue">0 Import Errors</span>
+            </div>
+            <div class="card-subtitle">Estructura del DAG <code>etl_violencia_intrafamiliar_segunda_entrega</code>.</div>
+            
+            <div class="code-block" style="margin-bottom: 12px;">
+[extract_primary] ---> [validate_primary_raw (Gate 1)] \
+                                                        ---> [transform_and_integrate]
+[extract_api]     ---> [validate_api_raw (Gate 2)]     /          |
+                                                                   v
+                                                        [validate_prepared (Gate 3)]
+                                                                   |
+                                                                   v
+                                                        [load_dimensional_dw]
+            </div>
+
+            <ul class="check-list" style="font-size: 0.84rem; gap: 8px;">
+              <li><strong>TaskFlow API:</strong> Uso de decoradores <code>@dag</code> y <code>@task</code> sin operadores obsoletos.</li>
+              <li><strong>Propagación de Batch ID:</strong> Identificador temporal único (UUID/timestamp) propagado vía XCom para auditar el ciclo de vida del lote.</li>
+            </ul>
+          </div>
+
+          <!-- Política de Reintentos -->
+          <div class="card highlight">
+            <div class="card-title">
+              <span>Política Justificada de Reintentos</span>
+              <span class="pill amber">Sección 18</span>
+            </div>
+            <div class="card-subtitle">Diferenciación entre fallos determinísticos y transitorios.</div>
+
+            <div class="table-container" style="margin-bottom: 12px;">
+              <table class="data-table">
+                <tr><th>Tipo de Fallo</th><th>Tareas</th><th>Política</th><th>Justificación Técnica</th></tr>
+                <tr>
+                  <td><strong style="color: #38bdf8;">Transitorio</strong></td>
+                  <td><code>extract_api</code></td>
+                  <td><span class="pill blue">3 retries (exp backoff)</span></td>
+                  <td>Cortes de red temporales o rate-limiting de la API SODA pueden resolverse en el siguiente intento.</td>
+                </tr>
+                <tr>
+                  <td><strong style="color: #fb7185;">Determinístico</strong></td>
+                  <td><code>validate_*</code>, <code>transform_*</code></td>
+                  <td><span class="pill rose">0 retries (falla inmediata)</span></td>
+                  <td>Una violación de esquema o fallo crítico GX es determinístico. Reintentar desperdicia recursos y enmascara el error.</td>
+                </tr>
+              </table>
+            </div>
+
+            <div class="pill emerald" style="font-size: 0.78rem;">
+              Cumplimiento: Detención inmediata con <code>AirflowFailException</code> ante errores críticos.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 9: PRUEBAS DE CONFIABILIDAD A, B, C -->
+    <section class="slide" data-slide="9">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Ingeniería de Resiliencia</div>
+          <h2 class="slide-title">Pruebas Obligatorias de Confiabilidad (A, B y C)</h2>
+          <div class="slide-subtitle">Evidencia auditada de ejecución exitosa, bloqueo por fallo controlado y re-ejecución segura sin duplicados.</div>
+        </div>
+        <span class="pill rose">Sección 20</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-3" style="height: 100%;">
+          <!-- Test A -->
+          <div class="card accent-emerald">
+            <div class="card-title">
+              <span>Test A: Successful Run</span>
+              <span class="pill emerald">PASSED</span>
+            </div>
+            <div class="card-subtitle">Ejecución integral completa con lote conforme a política.</div>
+            <ul class="check-list" style="font-size: 0.82rem; gap: 8px;">
+              <li>Tiempo total: <strong>22.20 segundos</strong>.</li>
+              <li>704,551 filas de origen cargadas en DW.</li>
+              <li>Reconciliación: <strong>1,501,809 víctimas</strong>.</li>
+              <li>Deltas de víctimas y registros: <strong>0</strong>.</li>
+              <li>Huérfanos de claves foráneas: <strong>0</strong>.</li>
+            </ul>
+            <div class="code-block" style="margin-top: auto; font-size: 0.72rem;">
+              docs/evidence/test_a_successful_run.json
+            </div>
+          </div>
+
+          <!-- Test B -->
+          <div class="card accent-rose">
+            <div class="card-title">
+              <span>Test B: Controlled Failure</span>
+              <span class="pill rose">PASSED</span>
+            </div>
+            <div class="card-subtitle">Inyección de fallo crítico en rama API y verificación de bloqueo.</div>
+            <ul class="check-list" style="font-size: 0.82rem; gap: 8px;">
+              <li><strong>Condición:</strong> Se elimina columna obligatoria <code>existencia_de_comisarias</code>.</li>
+              <li>Gate 2 detecta violación crítica: <code>DQ-RAW2-01</code>.</li>
+              <li><code>validate_api_raw</code> lanza <code>ValidationError</code>.</li>
+              <li><strong>Downstream:</strong> Transformación y Carga quedan en estado <code>BLOCKED</code>.</li>
+              <li><strong>Data Warehouse:</strong> Queda 100% intacto.</li>
+            </ul>
+            <div class="code-block" style="margin-top: auto; font-size: 0.72rem;">
+              docs/evidence/test_b_controlled_failure.json
+            </div>
+          </div>
+
+          <!-- Test C -->
+          <div class="card accent-blue">
+            <div class="card-title">
+              <span>Test C: Safe Rerun</span>
+              <span class="pill blue">PASSED</span>
+            </div>
+            <div class="card-subtitle">Re-ejecución inmediata sobre el mismo lote (Idempotencia).</div>
+            <div class="table-container" style="margin: 8px 0;">
+              <table class="data-table" style="font-size: 0.75rem;">
+                <tr><th>Métrica</th><th>Antes</th><th>Después</th><th>Delta</th></tr>
+                <tr><td>Fact Rows</td><td>701,714</td><td>701,714</td><td><strong>0</strong></td></tr>
+                <tr><td>Víctimas</td><td>1,501,809</td><td>1,501,809</td><td><strong>0</strong></td></tr>
+                <tr><td>Geografía</td><td>1,113</td><td>1,113</td><td><strong>0</strong></td></tr>
+              </table>
+            </div>
+            <div class="pill emerald" style="font-size: 0.72rem; margin-top: auto;">
+              Duplicados silenciosos: FALSO (0)
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 10: CARGA ATÓMICA EN POSTGRESQL -->
+    <section class="slide" data-slide="10">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Persistencia & Calidad de Datos</div>
+          <h2 class="slide-title">Implementación del Data Warehouse y Carga Atómica</h2>
+          <div class="slide-subtitle">Arquitectura transaccional en PostgreSQL 16 con aislamiento ACID y reconciliación matemática automatizada.</div>
+        </div>
+        <span class="pill emerald">Sección 15</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-2">
+          <!-- Mecanismo de Carga Atómica -->
+          <div class="card accent-indigo">
+            <div class="card-title">
+              <span>Carga Atómica en Transacción Única</span>
+              <span class="pill blue">ACID Guaranteed</span>
+            </div>
+            <div class="card-subtitle">Protocolo implementado en <code>src/load_dw.py</code> para evitar corrupción parcial.</div>
+            
+            <ol class="num-list" style="font-size: 0.85rem; gap: 10px;">
+              <li><strong>Inicio Transaccional:</strong> Se abre conexión y se deshabilita <code>autocommit</code>.</li>
+              <li><strong>Ejecución DDL:</strong> Creación controlada del esquema y llaves primarias/foráneas.</li>
+              <li><strong>Bulk Copy Ultrarrápido:</strong> Inserción de 701,714 filas fact y dimensiones mediante <code>COPY FROM STDIN</code> vía <code>StringIO</code> en memoria.</li>
+              <li><strong>Vistas Analíticas:</strong> Compilación de vistas SQL para Power BI.</li>
+              <li><strong>Verificación de Integridad:</strong> Ejecución de queries SQL de reconciliación.</li>
+              <li><strong>Commit / Rollback:</strong> <code>conn.commit()</code> solo ante 0 deltas y 0 huérfanos. En caso de error, <code>conn.rollback()</code> inmediato.</li>
+            </ol>
+          </div>
+
+          <!-- Reporte de Reconciliación -->
+          <div class="card highlight">
+            <div class="card-title">
+              <span>Reporte de Reconciliación Auditada</span>
+              <span class="pill emerald">100% Coincidencia</span>
+            </div>
+            <div class="card-subtitle">Verificación automática extraída de <code>docs/evidence/reconciliation_report.json</code>.</div>
+
+            <div class="table-container" style="margin-bottom: 14px;">
+              <table class="data-table">
+                <tr><th>Validación</th><th>Esperado</th><th>Cargado en DW</th><th>Estado</th></tr>
+                <tr><td>Registros Policiales</td><td>704,551</td><td>704,551</td><td><span class="pill emerald">Delta 0</span></td></tr>
+                <tr><td>Víctimas Totales</td><td>1,501,809</td><td>1,501,809</td><td><span class="pill emerald">Delta 0</span></td></tr>
+                <tr><td>Filas Fact (Grano)</td><td>701,714</td><td>701,714</td><td><span class="pill emerald">Exacto</span></td></tr>
+                <tr><td>Huérfanos de FK</td><td>0</td><td>0</td><td><span class="pill emerald">Integridad 100%</span></td></tr>
+              </table>
+            </div>
+
+            <div class="code-block" style="font-size: 0.72rem;">
+              "referential_integrity": { "orphan_foreign_keys_count": 0, "integrity_pass": true }
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 11: RESULTADOS ANALÍTICOS R1-R4 -->
+    <section class="slide" data-slide="11">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Consumo de Información & BI</div>
+          <h2 class="slide-title">Resultados Analíticos: Patrones Históricos (R1 a R4)</h2>
+          <div class="slide-subtitle">Evidencia gráfica conectada directamente a las vistas del Data Warehouse en Power BI.</div>
+        </div>
+        <span class="pill purple">Sección 21</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-4" style="height: 100%;">
+          <!-- R1 -->
+          <div class="card">
+            <div class="card-title" style="font-size: 0.9rem;">R1: Evolución Anual</div>
+            <div class="img-preview-box" style="height: 170px; margin-bottom: 10px;" onclick="openLightbox('docs/powerbi/r1_evolucion_anual.png', 'R1: Evolución Anual de Violencia Intrafamiliar')">
+              <img src="docs/powerbi/r1_evolucion_anual.png" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src='../powerbi/r1_evolucion_anual.png';}" alt="R1 Evolución">
+              <div class="zoom-hint">🔍 Ampliar</div>
+            </div>
+            <div style="font-size: 0.78rem; color: #cbd5e1; line-height: 1.35;">
+              Crecimiento constante desde 2010. Máximo histórico en 2024 superando las 150k víctimas.
+            </div>
+          </div>
+
+          <!-- R2 -->
+          <div class="card">
+            <div class="card-title" style="font-size: 0.9rem;">R2: Departamentos</div>
+            <div class="img-preview-box" style="height: 170px; margin-bottom: 10px;" onclick="openLightbox('docs/powerbi/r2_departamentos.png', 'R2: Concentración Departamental')">
+              <img src="docs/powerbi/r2_departamentos.png" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src='../powerbi/r2_departamentos.png';}" alt="R2 Departamentos">
+              <div class="zoom-hint">🔍 Ampliar</div>
+            </div>
+            <div style="font-size: 0.78rem; color: #cbd5e1; line-height: 1.35;">
+              Bogotá D.C., Antioquia, Cundinamarca, Valle y Santander lideran el volumen nacional de denuncias.
+            </div>
+          </div>
+
+          <!-- R3 -->
+          <div class="card">
+            <div class="card-title" style="font-size: 0.9rem;">R3: Brecha de Género</div>
+            <div class="img-preview-box" style="height: 170px; margin-bottom: 10px;" onclick="openLightbox('docs/powerbi/r3_genero.png', 'R3: Distribución por Género y Edad')">
+              <img src="docs/powerbi/r3_genero.png" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src='../powerbi/r3_genero.png';}" alt="R3 Género">
+              <div class="zoom-hint">🔍 Ampliar</div>
+            </div>
+            <div style="font-size: 0.78rem; color: #cbd5e1; line-height: 1.35;">
+              76.8% mujeres vs 23.2% hombres. Alta concentración en mujeres jóvenes y adultas (20–39 años).
+            </div>
+          </div>
+
+          <!-- R4 -->
+          <div class="card">
+            <div class="card-title" style="font-size: 0.9rem;">R4: Mecanismos</div>
+            <div class="img-preview-box" style="height: 170px; margin-bottom: 10px;" onclick="openLightbox('docs/powerbi/r4_mecanismos.png', 'R4: Mecanismos de Agresión')">
+              <img src="docs/powerbi/r4_mecanismos.png" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src='../powerbi/r4_mecanismos.png';}" alt="R4 Armas">
+              <div class="zoom-hint">🔍 Ampliar</div>
+            </div>
+            <div style="font-size: 0.78rem; color: #cbd5e1; line-height: 1.35;">
+              Predominio abrumador de armas contundentes y violencia física sin armas (>90% de incidentes).
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 12: RESULTADOS ANALÍTICOS R5-R7 -->
+    <section class="slide" data-slide="12">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Impacto y Capacidad Institucional</div>
+          <h2 class="slide-title">Análisis de Capacidad Institucional y Vacíos (R5 a R7)</h2>
+          <div class="slide-subtitle">Evidencia del valor de la integración con la API SODA para la toma de decisiones del Estado.</div>
+        </div>
+        <span class="pill emerald">Sección 21</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-3" style="height: 100%;">
+          <!-- R5 -->
+          <div class="card accent-blue">
+            <div class="card-title" style="font-size: 0.95rem;">R5: Violencia contra Menores</div>
+            <div class="img-preview-box" style="height: 220px; margin-bottom: 12px;" onclick="openLightbox('docs/powerbi/r5_mapa_menores.png', 'R5: Vulnerabilidad Geográfica de Menores de Edad')">
+              <img src="docs/powerbi/r5_mapa_menores.png" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src='../powerbi/r5_mapa_menores.png';}" alt="R5 Menores">
+              <div class="zoom-hint">🔍 Ampliar</div>
+            </div>
+            <div style="font-size: 0.82rem; color: #cbd5e1; line-height: 1.4;">
+              Foco en departamentos con alta densidad infantil. Alertas prioritarias en zonas periféricas y centros metropolitanos.
+            </div>
+          </div>
+
+          <!-- R6 -->
+          <div class="card accent-amber highlight">
+            <div class="card-title" style="font-size: 0.95rem;">
+              <span>R6: Sobrecarga Institucional</span>
+              <span class="pill amber">API Value</span>
+            </div>
+            <div class="img-preview-box" style="height: 220px; margin-bottom: 12px;" onclick="openLightbox('docs/powerbi/r6_sobrecarga.png', 'R6: Sobrecarga de Casos por Comisaría')">
+              <img src="docs/powerbi/r6_sobrecarga.png" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src='../powerbi/r6_sobrecarga.png';}" alt="R6 Sobrecarga">
+              <div class="zoom-hint">🔍 Ampliar</div>
+            </div>
+            <div style="font-size: 0.82rem; color: #cbd5e1; line-height: 1.4;">
+              Municipios como Soacha, Cali y Bogotá exhiben ratios críticos superiores a <strong>1,200 casos/año por comisaría</strong>, requiriendo refuerzo de personal inmediato.
+            </div>
+          </div>
+
+          <!-- R7 -->
+          <div class="card accent-rose highlight">
+            <div class="card-title" style="font-size: 0.95rem;">
+              <span>R7: Vacíos de Cobertura (Prioridad)</span>
+              <span class="pill rose">API Value</span>
+            </div>
+            <div class="img-preview-box" style="height: 220px; margin-bottom: 12px;" onclick="openLightbox('docs/powerbi/r7_prioridad.png', 'R7: Municipios Prioritarios con 0 Comisarías')">
+              <img src="docs/powerbi/r7_prioridad.png" onerror="if(!this.dataset.retried){this.dataset.retried=1;this.src='../powerbi/r7_prioridad.png';}" alt="R7 Prioridad">
+              <div class="zoom-hint">🔍 Ampliar</div>
+            </div>
+            <div style="font-size: 0.82rem; color: #cbd5e1; line-height: 1.4;">
+              Identificación precisa de <strong>29 municipios con alto volumen de incidentes y 0 comisarías</strong>. Justificación directa para inversión del MinJusticia.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 13: LIMITACIONES & ESCALABILIDAD -->
+    <section class="slide" data-slide="13">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Ingeniería Crítica & Futuro</div>
+          <h2 class="slide-title">Limitaciones Técnicas y Estrategia de Escalabilidad</h2>
+          <div class="slide-subtitle">Evaluación objetiva de restricciones operacionales del dominio y evolución hacia arquitecturas distribuidas.</div>
+        </div>
+        <span class="pill amber">Secciones 24 y 27</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-2">
+          <!-- Limitaciones Técnicas -->
+          <div class="card">
+            <div class="card-title">
+              <span>Limitaciones del Dominio y del Pipeline</span>
+              <span class="pill amber">Análisis Crítico</span>
+            </div>
+            <ul class="check-list" style="gap: 12px; margin-top: 6px;">
+              <li><strong>Subregistro Estadístico (Cifra Negra):</strong> Los datos representan únicamente denuncias formales ante la Policía Nacional. No capturan agresiones no reportadas por miedo, dependencia o inaccesibilidad física.</li>
+              <li><strong>Desfase Temporal del Directorio API:</strong> El catálogo de comisarías del MinJusticia se actualiza semestralmente; cambios recientes en sedes pueden tardar en verse reflejados.</li>
+              <li><strong>Escalamiento Vertical de PostgreSQL:</strong> Para cargas superiores a 10M de registros, el bulk copy requiere particionamiento temporal y ajuste de <code>maintenance_work_mem</code>.</li>
+            </ul>
+          </div>
+
+          <!-- Hoja de Ruta de Escalabilidad -->
+          <div class="card accent-indigo">
+            <div class="card-title">
+              <span>Hoja de Ruta de Escalabilidad (Cloud Native)</span>
+              <span class="pill blue">Roadmap</span>
+            </div>
+            <ul class="check-list" style="gap: 12px; margin-top: 6px;">
+              <li><strong>Streaming Ingestion:</strong> Evolución de ingesta batch hacia Apache Kafka para procesar alertas en tiempo real desde comisarías conectadas.</li>
+              <li><strong>Data Lakehouse Modular:</strong> Almacenamiento en capas Bronze/Silver/Gold sobre formato Apache Iceberg / Delta Lake en Amazon S3.</li>
+              <li><strong>Orquestación en Kubernetes:</strong> Despliegue de ejecutores distribuidos (Celery/KubernetesExecutor) en Airflow para paralelismo masivo de tareas de profiling.</li>
+              <li><strong>CI/CD DataOps:</strong> Automatización de pruebas GX previas a producción mediante GitHub Actions.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SLIDE 14: CONCLUSIONES Y CHECKLIST DE LA RÚBRICA -->
+    <section class="slide" data-slide="14">
+      <div class="slide-header">
+        <div>
+          <div class="slide-tag">Cierre de Sustentación</div>
+          <h2 class="slide-title">Conclusiones y Cumplimiento de la Rúbrica</h2>
+          <div class="slide-subtitle">Verificación final de criterios de evaluación de la Segunda Entrega (5.00 / 5.00 puntos).</div>
+        </div>
+        <span class="pill emerald">Sección 29</span>
+      </div>
+
+      <div class="slide-body">
+        <div class="grid-2">
+          <!-- Checklist Rúbrica -->
+          <div class="card accent-emerald">
+            <div class="card-title">
+              <span>Checklist de Verificación de Entrega</span>
+              <span class="pill emerald">100% Cumplido</span>
+            </div>
+            <div class="table-container" style="margin-top: 6px;">
+              <table class="data-table" style="font-size: 0.78rem;">
+                <tr><th>Criterio Evaluado</th><th>Puntaje</th><th>Evidencia en Repositorio</th></tr>
+                <tr><td>Requisitos Analíticos, API y Arquitectura</td><td>0.45</td><td>R1–R7 completos, Diagrama de Arquitectura</td></tr>
+                <tr><td>Profiling, Riesgos y Reglas de Calidad</td><td>0.55</td><td>16 Reglas GX, Umbrales justificados</td></tr>
+                <tr><td>Extracción, Transformación e Integración</td><td>0.70</td><td>SODA API + Fallback, Contrato DANE</td></tr>
+                <tr><td>Validación Automatizada con GX</td><td>0.75</td><td>Gates 1, 2 y 3 implementados y auditados</td></tr>
+                <tr><td>Orquestación Airflow y Confiabilidad</td><td>0.85</td><td>Airflow 3 Task SDK, Tests A, B y C</td></tr>
+                <tr><td>Data Warehouse y Dashboard BI</td><td>0.45</td><td>PostgreSQL ACID + Power BI (.pbix y fotos)</td></tr>
+                <tr><td>Seguridad, Repositorio y Documentación</td><td>0.25</td><td>Secrets scan limpio, README detallado</td></tr>
+                <tr><td><strong>Sustentación y Defensa Técnica</strong></td><td><strong>1.00</strong></td><td><strong>Diapositivas HTML interactivas y demo</strong></td></tr>
+              </table>
+            </div>
+          </div>
+
+          <!-- Comandos para Demo en Vivo -->
+          <div class="card highlight">
+            <div class="card-title">
+              <span>Entorno de Demostración y Repositorio</span>
+              <span class="pill blue">Demo Ready</span>
+            </div>
+            <div style="font-size: 0.85rem; color: #cbd5e1; margin-bottom: 12px; line-height: 1.4;">
+              El proyecto es 100% reproducible y cuenta con scripts listos para inspección o ejecución en vivo:
+            </div>
+
+            <div class="code-block" style="margin-bottom: 12px; font-size: 0.75rem;">
+# 1. Levantar PostgreSQL Data Warehouse
+docker compose up -d postgres_dw
+
+# 2. Ejecutar la Suite de Confiabilidad (A, B y C)
+python3 src/run_pipeline.py
+
+# 3. Lanzar Airflow Web UI (Puerto 8080)
+docker compose up -d airflow
+            </div>
+
+            <div style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.45;">
+              <strong>Repositorio Oficial:</strong> <a href="https://github.com/Macowli-0611/Proyecto_etl_c2" target="_blank" style="color: var(--accent-blue); text-decoration: none;">github.com/Macowli-0611/Proyecto_etl_c2</a><br>
+              <strong>Rama Principal:</strong> <code>main</code> (Totalmente al día).
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Global Footer -->
+  <footer>
+    <div class="nav-hints">
+      <span><span class="key-badge">←</span> / <span class="key-badge">→</span> Diapositiva</span>
+      <span><span class="key-badge">F</span> Pantalla Completa</span>
+      <span><span class="key-badge">T</span> Índice</span>
+      <span><span class="key-badge">Click</span> Ampliar Imagen</span>
+    </div>
+    <div class="nav-controls">
+      <button class="nav-btn" id="btn-prev">← Anterior</button>
+      <button class="nav-btn" id="btn-next">Siguiente →</button>
+    </div>
+  </footer>
+
+  <!-- Table of Contents Drawer -->
+  <aside id="toc-drawer">
+    <div class="toc-title">
+      <span>Tabla de Contenidos</span>
+      <button class="btn-icon" id="btn-close-toc" style="width: 28px; height: 28px;">✕</button>
+    </div>
+    <ul class="toc-list" id="toc-container">
+      <!-- Generado dinámicamente -->
+    </ul>
+  </aside>
+
+  <!-- Lightbox Modal for Images -->
+  <div id="lightbox" onclick="closeLightbox()">
+    <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+    <img id="lightbox-img" src="" alt="Ampliada">
+    <div id="lightbox-caption"></div>
+  </div>
+
+  <script>
+    // State
+    let currentSlide = 1;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+
+    // Elements
+    const progressBar = document.getElementById('progress-bar');
+    const slideIndicator = document.getElementById('slide-indicator');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const btnToc = document.getElementById('btn-toc');
+    const btnCloseToc = document.getElementById('btn-close-toc');
+    const tocDrawer = document.getElementById('toc-drawer');
+    const tocContainer = document.getElementById('toc-container');
+    const btnFullscreen = document.getElementById('btn-fullscreen');
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxCaption = document.getElementById('lightbox-caption');
+
+    // Slide Titles for TOC
+    const slideTitles = [
+      "Portada: Pipeline ETL & Data Warehouse",
+      "Alcance Analítico: R1–R5 y R6–R7",
+      "Arquitectura del Sistema & Flujo Dual",
+      "Entendimiento de Fuentes & API SODA",
+      "Compuertas de Calidad Great Expectations",
+      "Contrato de Integración & Grano",
+      "Modelo Dimensional Refinado (Star Schema)",
+      "Orquestación en Airflow 3 Task SDK",
+      "Pruebas de Confiabilidad (A, B y C)",
+      "Data Warehouse & Carga Atómica",
+      "Resultados Analíticos: R1 a R4",
+      "Capacidad Institucional: R5 a R7",
+      "Limitaciones Técnicas & Escalabilidad",
+      "Conclusiones & Checklist de Rúbrica"
+    ];
+
+    // Build TOC
+    slideTitles.forEach((title, idx) => {
+      const li = document.createElement('li');
+      li.className = `toc-item ${idx === 0 ? 'active' : ''}`;
+      li.innerHTML = `<span class="toc-idx">${String(idx + 1).padStart(2, '0')}</span> <span>${title}</span>`;
+      li.addEventListener('click', () => {
+        goToSlide(idx + 1);
+        closeToc();
+      });
+      tocContainer.appendChild(li);
+    });
+
+    // Update UI
+    function updateSlide() {
+      slides.forEach((slide, idx) => {
+        const slideNum = idx + 1;
+        slide.classList.remove('active', 'prev');
+        if (slideNum === currentSlide) {
+          slide.classList.add('active');
+        } else if (slideNum < currentSlide) {
+          slide.classList.add('prev');
+        }
+      });
+
+      // Update Header Indicator & Progress
+      slideIndicator.textContent = `${String(currentSlide).padStart(2, '0')} / ${String(totalSlides).padStart(2, '0')}`;
+      const progressPercent = ((currentSlide - 1) / (totalSlides - 1)) * 100;
+      progressBar.style.width = `${progressPercent}%`;
+
+      // Update Nav Buttons
+      btnPrev.disabled = currentSlide === 1;
+      btnNext.disabled = currentSlide === totalSlides;
+      btnNext.textContent = currentSlide === totalSlides ? "Fin ✓" : "Siguiente →";
+
+      // Update TOC Active item
+      const tocItems = document.querySelectorAll('.toc-item');
+      tocItems.forEach((item, idx) => {
+        item.classList.toggle('active', idx + 1 === currentSlide);
+      });
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    function goToSlide(num) {
+      if (num >= 1 && num <= totalSlides) {
+        currentSlide = num;
+        updateSlide();
+      }
+    }
+
+    // TOC Drawer Controls
+    function toggleToc() {
+      tocDrawer.classList.toggle('open');
+    }
+
+    function closeToc() {
+      tocDrawer.classList.remove('open');
+    }
+
+    // Fullscreen Controls
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    // Universal Image Fallback Resolver
+    function setupImageFallbacks() {
+      document.querySelectorAll('img').forEach(img => {
+        img.addEventListener('error', function() {
+          const originalSrc = this.getAttribute('data-original-src') || this.getAttribute('src');
+          if (!this.getAttribute('data-original-src')) {
+            this.setAttribute('data-original-src', originalSrc);
+          }
+          let attempt = parseInt(this.dataset.attempt || '0', 10);
+          
+          // Determine filename and subfolder
+          const filename = originalSrc.split('/').pop();
+          const isPowerBi = originalSrc.includes('powerbi') || filename.startsWith('r');
+          
+          const candidates = isPowerBi ? [
+            'docs/powerbi/' + filename,
+            '../powerbi/' + filename,
+            'Proyecto_etl_C2/docs/powerbi/' + filename,
+            '../../docs/powerbi/' + filename
+          ] : [
+            'docs/' + filename,
+            '../' + filename,
+            'Proyecto_etl_C2/docs/' + filename,
+            '../../docs/' + filename
+          ];
+
+          if (attempt < candidates.length) {
+            this.dataset.attempt = attempt + 1;
+            this.src = candidates[attempt];
+          }
+        });
+      });
+    }
+
+    // Lightbox Controls
+    function openLightbox(src, caption) {
+      // Find matching img to borrow its verified currentSrc if available
+      const matchingImg = Array.from(document.querySelectorAll('img')).find(i => i.src.endsWith(src.split('/').pop()));
+      lightboxImg.src = matchingImg ? matchingImg.currentSrc : src;
+      lightboxCaption.textContent = caption || "";
+      lightbox.classList.add('active');
+    }
+
+    function closeLightbox() {
+      lightbox.classList.remove('active');
+    }
+
+    // Event Listeners
+    btnPrev.addEventListener('click', prevSlide);
+    btnNext.addEventListener('click', nextSlide);
+    btnToc.addEventListener('click', toggleToc);
+    btnCloseToc.addEventListener('click', closeToc);
+    btnFullscreen.addEventListener('click', toggleFullscreen);
+
+    // Keyboard Shortcuts
+    window.addEventListener('keydown', (e) => {
+      // If lightbox is open, ESC closes it
+      if (lightbox.classList.contains('active')) {
+        if (e.key === 'Escape') closeLightbox();
+        return;
+      }
+
+      // If TOC is open, ESC closes it
+      if (tocDrawer.classList.contains('open') && e.key === 'Escape') {
+        closeToc();
+        return;
+      }
+
+      switch (e.key) {
+        case 'ArrowRight':
+        case 'ArrowDown':
+        case ' ': // Space
+        case 'PageDown':
+          e.preventDefault();
+          nextSlide();
+          break;
+        case 'ArrowLeft':
+        case 'ArrowUp':
+        case 'PageUp':
+          e.preventDefault();
+          prevSlide();
+          break;
+        case 'Home':
+          e.preventDefault();
+          goToSlide(1);
+          break;
+        case 'End':
+          e.preventDefault();
+          goToSlide(totalSlides);
+          break;
+        case 'f':
+        case 'F':
+          e.preventDefault();
+          toggleFullscreen();
+          break;
+        case 't':
+        case 'T':
+          e.preventDefault();
+          toggleToc();
+          break;
+        case 'Escape':
+          closeToc();
+          break;
+      }
+    });
+
+    // Initialize
+    setupImageFallbacks();
+    updateSlide();
+  </script>
+</body>
+</html>
