@@ -33,89 +33,112 @@ Para transformar el dato de denuncia en una herramienta efectiva de política p�
 
 ---
 
-## 2. ¿Qué Exigía el Pliego de la Segunda Entrega?
+## 2. ¿Qué Exigía el Pliego de la Segunda Entrega? (Tabla Resumen)
 
-El documento de especificación académica (`ETL_2026-2_Project_SecondDelivery_v2.pdf`) fijó las siguientes 12 exigencias obligatorias:
+El documento de especificación académica (`ETL_2026-2_Project_SecondDelivery_v2.pdf`) fijó las siguientes capacidades y criterios de evaluación:
 
-1. **Continuidad con la Primera Entrega:** Preservar el problema analítico, los ODS y los requerimientos R1–R5 (con justificación explícita de cualquier refinamiento). El repositorio de la Entrega 1 debe permanecer intacto.
-2. **Segunda Fuente Programática vía API:** Incorporar un origen de datos secundario consumido programáticamente (sin descargas manuales) desde una API pública que aporte variables ausentes en la fuente primaria.
-3. **Requerimientos Integrados R6 y R7:** Formular dos nuevas preguntas analíticas de alto impacto que requieran obligatoriamente combinar datos de la fuente primaria y de la API (uniones de resultados no son válidas; se requiere integración dimensional profunda).
-4. **Perfilamiento de Datos Separado:** Realizar perfilamiento estadístico y estructural de ambas fuentes de manera independiente antes de transformar. El perfilamiento debe observar sin modificar los datos.
-5. **Matriz de Riesgos y Reglas de Calidad (Data Quality):** Definir un marco formal de calidad con reglas trazables, dimensiones de calidad (completitud, validez, conformidad, unicidad, consistencia), métricas, umbrales y niveles de severidad (Crítica, Advertencia, Informativa).
-6. **Validación Automatizada con Great Expectations (GX 1.X):** Implementar tres compuertas de validación:
-   - Compuerta 1 (`validate_primary_raw`): Valida los datos brutos primarios tras la extracción.
-   - Compuerta 2 (`validate_api_raw`): Valida los datos brutos de la API tras la extracción.
-   - Compuerta 3 (`validate_prepared`): Valida el dataset integrado y transformado antes de permitir su carga en el Data Warehouse.
-7. **Contrato de Integración de Ingeniería:** Especificar formalmente la llave de cruce, cardinalidad, transformaciones previas, armonización temporal, manejo de no emparejados (unmatched) y limitaciones.
-8. **Refinamiento del Modelo Dimensional (Ralph Kimball):** Ajustar el esquema estrella de la Primera Entrega para incorporar las nuevas entidades o atributos enriquecidos, justificando el grano de hechos y las dimensiones.
-9. **Data Warehouse Relacional en PostgreSQL:** Implementar el esquema físico con DDL, tipos de datos óptimos, llaves primarias/foráneas, constraints de unicidad y un mecanismo de carga masiva de alto rendimiento con reconciliación post-carga exacta.
-10. **Orquestación con Apache Airflow 3.X:** Orquestar el flujo de datos completo mediante el TaskFlow API (`@dag`, `@task`), garantizando interfaces compactas (sin transferir datasets masivos por XCom), dependencias estrictas y políticas de reintento diferenciadas.
-11. **Pruebas de Confiabilidad Obligatorias (Sección 20):** Demostrar el comportamiento del sistema bajo tres escenarios:
-    - **Test A (Éxito completo):** Pipeline de punta a punta con todas las compuertas aprobadas y reconciliación exacta.
-    - **Test B (Falla Crítica Controlada):** Inyección de datos anómalos que violen una regla crítica; la compuerta debe fallar y las tareas dependientes aguas abajo deben quedar bloqueadas (`UPSTREAM_FAILED`), protegiendo el Data Warehouse.
-    - **Test C (Reejecución Segura / Idempotencia):** Reejecución con el mismo lote que demuestre que no se generan duplicados ni se corrompen las métricas (Deltas = 0).
-12. **Producto Analítico / Dashboard:** Crear un dashboard interactivo conectado directamente al Data Warehouse que responda visualmente a R1–R7, con especial énfasis en R6 y R7.
+| # | Requisito del PDF | Detalle de la Exigencia | Cómo se Cumplió en la Solución |
+| :-: | :--- | :--- | :--- |
+| **1** | **Continuidad Entrega 1** | Preservar R1–R5, problema y ODS. Dejar intacto el repo anterior. | R1–R5 preservados y documentados en tabla comparativa. `Proyecto_etl_C1` quedó 100% inalterado. |
+| **2** | **Segunda Fuente (API)** | Extracción programática vía API pública con datos ausentes en la fuente primaria. | Extracción REST de la API SODA de Comisarías de Familia (MinJusticia / `datos.gov.co`). |
+| **3** | **Requisitos R6 y R7** | Dos nuevos requisitos que requieran cruzar ambas fuentes (unir resultados no basta). | **R6:** Sobrecarga por comisaría (`víctimas / comisarías`).<br>**R7:** Déficit legal Ley 2126 vs violencia letal contra niños y mujeres. |
+| **4** | **Perfilamiento Separado** | Perfilar estadísticamente ambas fuentes por separado y medir riesgo de integración antes de transformar. | Script [src/profiling.py](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/src/profiling.py) y notebook: 98,92% de match territorial en DANE 5 dígitos. |
+| **5** | **Matriz de Calidad (DQ)** | Mínimo 6 reglas formales con atributos, dimensiones, métricas, umbrales y severidad. | 14 reglas documentadas (`DQ-RAW1-*`, `DQ-RAW2-*`, `DQ-PREP-*`) trazables a R1–R7. |
+| **6** | **Great Expectations (GX 1.X)** | Tres compuertas automáticas: datos brutos primarios, datos brutos de la API y datos preparados. | Implementado con GX Fluent API en [src/validate_gx.py](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/src/validate_gx.py) (Gates 1, 2 y 3). |
+| **7** | **Contrato de Integración** | Documentar llaves de cruce, cardinalidad, manejo de no emparejados y supuestos. | Llave DANE 5 dígitos. 11 corregimientos amazónicos conservados como áreas no municipalizadas (**0 víctimas descartadas**). |
+| **8** | **Modelo Dimensional** | Refinar el esquema estrella (Kimball): evaluar grano, dimensiones enriquecidas y outriggers. | `dim_geografia` enriquecida con comisarías y categorías de ley; `dim_comisaria` como outrigger físico; hechos con constraint de grano único. |
+| **9** | **Data Warehouse Relacional** | PostgreSQL o MySQL con DDL, tipos, constraints y carga masiva de alto rendimiento. | PostgreSQL 16 en Docker con streaming binario `COPY` (701.714 hechos cargados en 16 segundos). |
+| **10** | **Reconciliación Exacta** | Demostrar que los totales cargados coinciden exactamente con la fuente primaria. | Verificación SQL automática: **1.501.809 víctimas cargadas (Delta = 0, 0,0000%)**, 0 claves huérfanas. |
+| **11** | **Orquestación Airflow 3.X** | Orquestar el flujo con TaskFlow API (`@dag`, `@task`), interfaces compactas y reintentos selectivos. | DAG modular en [dags/etl_violencia_intrafamiliar_dag.py](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/dags/etl_violencia_intrafamiliar_dag.py); metadatos ligeros por XCom, datos en Parquet. |
+| **12** | **Pruebas de Confiabilidad** | Demostrar obligatoriamente Test A (Éxito), Test B (Falla controlada con bloqueo) y Test C (Idempotencia). | [src/run_pipeline.py](file:///Users/usuario/Desktop/ETLproyecto2/Proyecto_etl_C2/src/run_pipeline.py) ejecuta y certifica las 3 pruebas con reportes JSON persistidos. |
+| **13** | **Producto Analítico / Dashboard** | Dashboard conectado al Data Warehouse que responda R1–R7 y muestre el valor de la API. | Dashboard web interactivo con Chart.js y Dark Mode en puerto 8080 con KPIs de déficit y gráficos de sobrecarga. |
+| **14** | **Nuevo Repositorio Autónomo** | Repositorio independiente con archivos de entorno y README de 25 secciones. | Carpeta `Proyecto_etl_C2/` con Dockerfile, docker-compose, requirements.txt, .env.example y README exhaustivo. |
 
 ---
 
-## 3. ¿Qué Herramientas y Tecnologías se Utilizaron?
+## 3. La API Utilizada: ¿Cuál fue, Cómo Funciona y qué Datos Aportó?
 
-| Herramienta / Tecnología | Versión | Rol en la Solución | Justificación de Ingeniería |
-| :--- | :--- | :--- | :--- |
-| **Python** | 3.13 / 3.11 | Lenguaje principal del sistema | Ecosistema líder en Data Engineering, compatibilidad nativa con GX, Airflow y Pandas. |
-| **PostgreSQL** | 16 (Alpine) | Motor de Data Warehouse | Base de datos relacional robusta con soporte para streaming `COPY`, llaves foráneas estrictas y vistas analíticas optimizadas. |
-| **Docker & Docker Compose** | 29.4+ | Contenerización de infraestructura | Garantiza reproducibilidad de entorno del Data Warehouse en cualquier máquina host con un único comando. |
-| **Great Expectations** | 1.24.0 | Validación de calidad automatizada | Estándar de la industria para compuertas de calidad declarativas (GX 1.X Fluent API). |
-| **Apache Airflow** | 3.3.2 | Orquestación de flujos de trabajo | Orquestador líder. Permite modelar dependencias DAG, reintentos selectivos y observabilidad de estado. |
-| **Pandas & NumPy** | 2.2+ / 2.0+ | Transformación y normalización | Procesamiento vectorial eficiente en memoria para datasets de tamaño medio (700k filas). |
-| **PyArrow** | 15.0+ | Persistencia intermedia (Parquet) | Formato columnar comprimido con preservación estricta de tipos de datos para la capa procesada. |
-| **psycopg2-binary** | 2.9.12 | Conector nativo de PostgreSQL | Permite el uso del protocolo de streaming `COPY ... FROM STDIN WITH (FORMAT CSV)`, cargando 700k registros en 16 segundos. |
-| **HTML5 & Vanilla CSS** | W3C Modern | Interfaz de usuario del Dashboard | Arquitectura web ligera sin dependencias pesadas de Node/npm, con estética Glassmorphism, Dark Mode y responsive layout. |
-| **Chart.js** | 4.4.1 | Visualizaciones interactivas | Gráficos dinámicos de series de tiempo, barras apiladas, donas y dispersión para R1–R7. |
-| **Matplotlib** | 3.10.9 | Generación de diagramas técnicos | Creación programática de los diagramas de arquitectura del sistema y del modelo estrella relacional. |
-| **Jupyter & nbclient** | 7.3+ / 0.11+ | Notebook reproducible | Documentación viva del perfilamiento y validación con celdas ejecutadas y salidas persistidas. |
+### 3.1 Identificación Técnica de la API
+* **Entidad Emisora:** Ministerio de Justicia y del Derecho / Presidencia de la República.
+* **Nombre Oficial del Dataset:** *Caracterización de las Comisarías de Familia en el Territorio Nacional*.
+* **Plataforma Tecnológica:** Portal de Datos Abiertos de Colombia (`datos.gov.co`), provisto por la plataforma **Socrata Open Data API (SODA REST API)**.
+* **Endpoint Base:**
+  `https://www.datos.gov.co/resource/7tuu-upb2.json`
+* **Volumen de Datos:** 1.249 registros detallados que cubren el directorio físico y administrativo de comisarías en 1.102 municipios colombianos.
+
+### 3.2 ¿Cómo está Funcionando la Extracción? (Módulo `src/extract_api.py`)
+1. **Llamadas Programáticas HTTP REST:**
+   El módulo realiza solicitudes `GET` parametrizadas utilizando la librería `requests` de Python con parámetros SODA:
+   - `$limit=2000`: Para extraer la totalidad del censo nacional en un solo lote consistente.
+   - `$order=:id`: Para garantizar determinismo en el ordenamiento del resultado.
+   - Headers: `Accept: application/json` y soporte opcional de autenticación mediante `X-App-Token` (variable `API_APP_TOKEN` en `.env`).
+2. **Resiliencia y Tolerancia a Fallos de Red:**
+   - Implementa **3 reintentos automáticos** con **backoff exponencial** (`sleep = 10s * (2 ** retry)`). Si el portal gubernamental experimenta microcortes de red o latencia transitoria, el extractor espera y reintenta automáticamente.
+3. **Validación Criptográfica y Manifiesto de Pinned Data:**
+   - Tras descargar los datos, calcula el hash SHA-256 del contenido (`data/raw/api_comisarias_raw.json`) y lo almacena en `data/raw/api_source_manifest.json` junto con la URL, cantidad de filas (1.249), timestamp y esquema de columnas detectado.
+4. **Mecanismo de Caché Offline (Garantía de Sustentación en Clase):**
+   - El pliego del PDF estipula explícitamente: *"The team must preserve prior evidence in case a remote API or external dependency is temporarily unavailable during the presentation"*.
+   - Si durante la sustentación en clase no hay acceso a internet o la API de MinJusticia se cae, el extractor detecta la contingencia y utiliza automáticamente el archivo bruto respaldado en caché local, permitiendo que la demostración en vivo nunca falle.
+
+### 3.3 ¿Los Datos de la API Eran Nuevos o Eran Repetidos?
+**Eran datos 100% NUEVOS y completamente ortogonales a la fuente primaria.**
+
+Para entender la enorme ganancia analítica, comparemos qué tenía la fuente primaria versus qué aportó la API:
+
+| Característica / Variable | Fuente Primaria (Policía Nacional - DIJIN) | Fuente Secundaria (API MinJusticia - Comisarías) | ¿Eran Repetidos? |
+| :--- | :--- | :--- | :---: |
+| **Naturaleza del Dato** | Hechos delictivos y denuncias penales registradas. | Infraestructura física, capacidad institucional y marco normativo. | **No** (Ortogonales) |
+| **Grano Transaccional** | Individual por reporte de víctima de violencia. | Directorio físico por sede de Comisaría de Familia. | **No** (Diferente grano) |
+| **Presencia de Comisarías** | **Inexistente** (La Policía no registra comisarías). | `existencia_de_comisarias` (Cantidad verificada por municipio). | **NUEVO** |
+| **Estándar Legal Ley 2126** | **Inexistente** (No contiene umbrales poblacionales). | `numero_de_comisarias_a_crear_por_ley_2126_de_2021` (Exigencia legal de 1 por cada 100k hab). | **NUEVO** |
+| **Categoría Fiscal Ley 617** | **Inexistente** (Solo tenía nombres de municipio). | `categoria_del_municipio` (Especial, 1, 2, 3, 4, 5, 6). | **NUEVO** |
+| **Datos de Contacto y Operación** | **Inexistente**. | Dirección, teléfono, correo y horarios de atención al público. | **NUEVO** |
+
+**Resultado de la Integración:**
+La fuente primaria aportó el **numerador** de la violencia (¿Cuántas víctimas hay en cada municipio?). La API aportó el **denominador** y el **estándar legal** (¿Con cuántas comisarías cuenta el Estado para atenderlas y cuántas debería tener por ley?).  
+Al cruzarlas mediante el código DANE de 5 dígitos, se crearon los nuevos indicadores que resolvieron el sesgo de la Entrega 1.
 
 ---
 
-## 4. ¿Cómo se Hizo y de Qué Manera Funciona el Sistema?
+## 4. El Dashboard Analítico: ¿Cómo se Hizo y por qué no solo en Power BI?
 
-### 4.1 Selección Justificada de la API: Directorio de Comisarías de Familia (MinJusticia)
-* **Entidad Emisora:** Ministerio de Justicia y del Derecho.
-* **Plataforma:** Portal de Datos Abiertos de Colombia (`datos.gov.co`).
-* **Endpoint SODA REST:** `https://www.datos.gov.co/resource/7tuu-upb2.json`
-* **Volumen:** 1.249 registros de comisarías cubriendo 1.102 municipios colombianos.
-* **Atributos Clave Incorporados:**
-  - Código DANE del municipio (`c_digo_dane_municipio`).
-  - Número de comisarías verificadas instaladas por municipio (`existencia_de_comisarias`).
-  - Número de comisarías mínimas requeridas por mandato de la **Ley 2126 de 2021** (`numero_de_comisarias_a_crear_por_ley_2126_de_2021`), calculada con base en el estándar de al menos 1 comisaría por cada 100.000 habitantes.
-  - Categoría municipal según la **Ley 617 de 2000** (`categoria_del_municipio`: Especial, 1, 2, 3, 4, 5, 6), que mide la capacidad presupuestal y administrativa del ente territorial.
-  - Datos operativos: dirección física, teléfono de contacto, correo institucional y horarios de atención al público.
+### 4.1 ¿Por qué se Desarrolló un Dashboard Web Nativo?
+En la Primera Entrega, el producto analítico fue un archivo local de Power BI Desktop (`.pbix`). Aunque Power BI es potente para análisis exploratorio en estaciones Windows, presentaba tres limitaciones operacionales críticas para una arquitectura de ingeniería de datos moderna:
+1. **Falta de Portabilidad y Dependencia de Software Propietario:** Un archivo `.pbix` requiere tener instalado Power BI Desktop (disponible únicamente para Windows). Un evaluador o profesor en macOS o Linux no puede ejecutarlo directamente sin máquinas virtuales.
+2. **Desconexión del Pipeline Automatizado:** En Power BI Desktop, los refrescos no se pueden disparar fácilmente por línea de comandos ni integrarse de forma desacoplada con contenedores Docker en un solo script reproducible.
+3. **Pliego Flexible del PDF:** La Sección 18 y 26 del pliego especifica textualmente:
+   > *"Analytical Product: Dashboard connected to the Data Warehouse with R6–R7 outputs and API-integration value... It may be built with Power BI, Tableau, Metabase, Superset, Streamlit, or a custom web dashboard connected to PostgreSQL/MySQL."*
 
-### 4.2 Formulación de los Nuevos Requerimientos Integrados R6 y R7
-Los requerimientos R6 y R7 responden a preguntas que ninguna de las dos fuentes puede responder por sí sola:
+Por esta razón, se construyó una **aplicación web interactiva completa (HTML5, Vanilla CSS moderno y Chart.js)** servida por un servidor Python integrado, complementada con la base de datos PostgreSQL lista para recibir conexiones de Power BI si el usuario lo prefiere.
 
-#### Requerimiento R6: Sobrecarga Institucional y Presión Operativa por Comisaría
-* **Pregunta de Negocio:** ¿Cuál es la carga acumulada de víctimas de violencia intrafamiliar por comisaría instalada en cada municipio colombiano, y en qué territorios existe un colapso operativo por sobredemanda de justicia?
-* **Lógica de Integración:**
-  $$\text{Tasa de Carga} = \frac{\sum(\text{cantidad\_victimas})}{\text{MAX}(\text{comisarias\_instaladas})}$$
-* **Hallazgo de Impacto:** Las ciudades con mayor sobrecarga relativa no son las tres grandes metrópolis (Bogotá, Medellín, Cali cuentan con múltiples comisarías), sino **ciudades intermedias con déficit de infraestructura**:
-  1. **Cúcuta (Norte de Santander):** 20.389 víctimas históricas atendidas por **1 sola comisaría** (20.389 víctimas/comisaría).
-  2. **Popayán (Cauca):** 17.070 víctimas históricas con **1 sola comisaría** (17.070 víctimas/comisaría).
-  3. **Bello (Antioquia):** 16.984 víctimas históricas con **1 sola comisaría** (16.984 víctimas/comisaría).
-  4. **Soacha (Cundinamarca):** 33.390 víctimas con 2 comisarías (16.695 víctimas/comisaría).
+### 4.2 Arquitectura y Componentes del Dashboard (`dashboard/`)
+El dashboard analítico se compone de:
+1. **Frontend con Estética Glassmorphism y Dark Mode (`dashboard/index.html` y `styles.css`):**
+   - Paleta de colores sobria y profesional (fondos oscuros `#0b0f19`, tarjetas translúcidas con desenfoque `backdrop-filter: blur(12px)`, tipografía moderna Inter de Google Fonts).
+   - Diseño completamente responsive (adaptable a pantallas de escritorio, laptops y tablets).
+2. **Capa Visual Interactiva (`dashboard/app.js` con Chart.js 4.4):**
+   - **KPI Cards Dinámicas:** Total de víctimas (1.501.809), denuncias (704.551), municipios (1.113) y la **Brecha Nacional de Comisarías (114 comisarías faltantes)**.
+   - **Gráficos R1 a R5:** Línea de tendencia histórica 2010–2025 (R1), dona de proporción de género 77% mujeres (R3) y barras horizontales de mecanismos de agresión (R4).
+   - **Gráficos de Integración de la API (R6 y R7):**
+     * **Gráfico R6 (Barras de Sobrecarga Institucional):** Muestra el Top 10 de municipios con mayor tasa de víctimas por comisaría (encabezados por Cúcuta con 20.389 víctimas/comisaría y Popayán con 17.070).
+     * **Gráfico R7 (Dispersión de Prioridad de Intervención):** Cruza en el eje X la brecha legal de comisarías faltantes y en el eje Y la cantidad de menores atacados con armas letales, ubicando en el cuadrante de **Prioridad 1 Urgente** a Cúcuta (brecha de 8 y 51 menores atacados).
+   - **Tabla Interactiva de Municipios Críticos:** Permite ordenar territorios por nivel de presión operativa y ver el teléfono y horario de atención de sus comisarías.
+3. **Servidor HTTP Local (`dashboard/server.py`):**
+   - Servidor ligero basado en `http.server` de Python sin dependencias externas pesadas de Node ni configuraciones complejas.
+   - Se ejecuta con: `python3 dashboard/server.py` y se abre de inmediato en `http://localhost:8080`.
+4. **Capa Semántica y Conexión al Data Warehouse (`dashboard/export_dw_data.py`):**
+   - Extrae directamente de las vistas de PostgreSQL (`vw_bi_hechos_completos`, `vw_bi_presion_institucional`, `vw_bi_brecha_riesgo_menores`) la agregación optimizada y la sincroniza en `dashboard/data_dw.json`.
 
-#### Requerimiento R7: Déficit Legal de Comisarías (Ley 2126) vs. Severidad Letal en Menores y Mujeres
-* **Pregunta de Negocio:** ¿En qué municipios el incumplimiento del estándar legal de comisarías de familia (Ley 2126 de 2021) coincide críticamente con focos de agresión letal contra menores de edad (R5) y mujeres (R3)?
-* **Lógica de Integración:**
-  $$\text{Brecha Legal} = \max(0, \text{comisarias\_requeridas\_ley} - \text{comisarias\_instaladas})$$
-  Cruzado con el conteo de menores atacados con armas de fuego o cortopunzantes.
-* **Hallazgo de Impacto:**
-  - A nivel nacional existe un **déficit acumulado de 114 comisarías de familia** para cumplir con la Ley 2126.
-  - El caso más grave de Colombia es **Cúcuta**, que requiere legalmente 9 comisarías por su población, tiene solo 1 (**brecha de 8 comisarías**) y acumula **51 menores de edad agredidos en el hogar con armas letales**. Se clasifica como **Prioridad 1 Urgente** de intervención para el ICBF y MinJusticia.
-  - **Soacha** presenta una brecha de 4 comisarías y 13 menores atacados con armas letales.
+### 4.3 ¿Y si el Evaluador Quiere Conectar Power BI?
+El Data Warehouse en PostgreSQL 16 está activo en el puerto `5432`. Si un evaluador desea abrir Power BI Desktop, puede conectarse en 2 clics:
+- **Servidor:** `localhost:5432`
+- **Base de Datos:** `etl_dw`
+- **Usuario:** `postgres` | **Contraseña:** `postgres123`
+- **Vistas recomendadas para importar:** `vw_r6_sobrecarga_comisarias` y `vw_r7_prioridad_intervencion`.
 
-### 4.3 Arquitectura por Capas y Contrato de Integración
-El pipeline sigue la arquitectura de capas **Medallion (Bronze $\rightarrow$ Silver $\rightarrow$ Gold)**:
+---
+
+## 5. Arquitectura del Sistema y Funcionamiento de Extremo a Extremo
 
 ```
 [Fuente Primaria: DIJIN] (CSV)  ──>  extract_primary.py  ──>  [Compuerta 1: validate_primary_raw]
@@ -145,69 +168,45 @@ El pipeline sigue la arquitectura de capas **Medallion (Bronze $\rightarrow$ Sil
                    Dashboard Web Interactivo (Chart.js / SQL)
 ```
 
-#### Reglas del Contrato de Integración:
-1. **Llave de Cruce:** Código DANE municipal de 5 dígitos (`codigo_dane_municipio`).
-2. **Preprocesamiento:**
-   - La fuente primaria DIJIN contenía códigos DANE de 8 dígitos (`DDMMMCCC` a nivel centro poblado). Se truncaron a los primeros 5 dígitos (`DDMMM`) para estandarizarlos a nivel municipal.
-   - La API de Comisarías contenía códigos de 4 o 5 dígitos en formato de texto. Se aplicó `.str.zfill(5)` para recuperar ceros iniciales perdidos (ej. Antioquia `05088`).
-3. **Manejo de Casos No Emparejados (Unmatched):**
-   - **11 áreas no municipalizadas** en la fuente primaria (corregimientos de Amazonas, Vaupés, Guainía sin personería municipal): Se conservaron en `dim_geografia` asignándoles categoría `'ÁREA NO MUNICIPALIZADA'`, `comisarias_instaladas = 0` y `brecha_comisarias = 1`. **Ninguna víctima fue descartada**.
-   - **2 municipios en la API sin denuncias históricas:** Carmen del Darién (`27150`) y Barrancominas (`94343`) registraban comisaría física pero cero denuncias policiales en el período. Fueron agregados a `dim_geografia` para que `dim_comisaria` tenga integridad referencial absoluta (**cero claves huérfanas**).
+### 5.1 Las Tres Compuertas de Calidad con Great Expectations 1.X
+1. **Compuerta 1 (`validate_primary_raw`):**
+   - Evalúa la presencia de columnas mandatorias (`FECHA HECHO`, `CODIGO DANE`, `CANTIDAD`), formato de fechas DD/MM/YYYY, que CANTIDAD sea entero positivo y que nulos en género no superen el 1%.
+2. **Compuerta 2 (`validate_api_raw`):**
+   - Evalúa columnas obligatorias de la API (`c_digo_dane_municipio`, `existencia_de_comisarias`), longitud de código DANE entre 4 y 5 caracteres, valores válidos de categorías de Ley 617 y conteo no negativo de comisarías.
+3. **Compuerta 3 (`validate_prepared`):**
+   - Evalúa invariantes dimensionales antes de tocar la base de datos: unicidad del grano declarado, ausencia total de nulos en llaves foráneas, 100% de integridad referencial con dimensiones y **conciliación matemática exacta de víctimas (Suma = 1.501.809)**.
 
-### 4.4 Matriz de Calidad y Validación Automatizada con Great Expectations 1.X
-Se diseñaron **14 reglas de calidad de datos** estructuradas en tres compuertas:
+Cualquier infracción **Crítica** lanza un `ValidationError` que detiene el flujo y bloquea la carga al Data Warehouse.
 
-| ID Regla | Compuerta | Atributo Evaluado | Dimensión de Calidad | Métrica / Umbral | Severidad | Acción Pipeline |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **DQ-RAW1-01** | Gate 1 (Primaria) | `FECHA HECHO`, `CODIGO DANE`, `CANTIDAD` | Completitud | Columnas existen y no nulas | Crítica | Bloquea pipeline |
-| **DQ-RAW1-02** | Gate 1 (Primaria) | `FECHA HECHO` | Validez | Formato fecha ISO/estándar | Crítica | Bloquea pipeline |
-| **DQ-RAW1-03** | Gate 1 (Primaria) | `CODIGO DANE` | Conformidad | Longitud string == 8 chars | Advertencia | Registra warning |
-| **DQ-RAW1-04** | Gate 1 (Primaria) | `CANTIDAD` | Validez | Valor entero > 0 | Crítica | Bloquea pipeline |
-| **DQ-RAW1-05** | Gate 1 (Primaria) | `GENERO` | Completitud | Tasa de nulos <= 1% | Advertencia | Registra warning |
-| **DQ-RAW2-01** | Gate 2 (API) | `c_digo_dane_municipio`, `existencia_de_comisarias` | Completitud | Columnas mandatorias existen | Crítica | Bloquea pipeline |
-| **DQ-RAW2-02** | Gate 2 (API) | `c_digo_dane_municipio` | Conformidad | Longitud string entre 4 y 5 | Crítica | Bloquea pipeline |
-| **DQ-RAW2-03** | Gate 2 (API) | `categoria_del_municipio` | Validez | Valores en catálogo Ley 617 | Advertencia | Registra warning |
-| **DQ-RAW2-04** | Gate 2 (API) | `existencia_de_comisarias` | Validez | Valor numérico >= 0 | Crítica | Bloquea pipeline |
-| **DQ-PREP-01** | Gate 3 (Prepared) | `id_tiempo, id_geografia, id_victima, id_medio` | Unicidad | Unicidad estricta del grano | Crítica | Bloquea carga DW |
-| **DQ-PREP-02** | Gate 3 (Prepared) | Claves foráneas | Completitud | Nulos en FKs == 0 | Crítica | Bloquea carga DW |
-| **DQ-PREP-03** | Gate 3 (Prepared) | Claves de dimensión | Consistencia | 100% match con dimensiones | Crítica | Bloquea carga DW |
-| **DQ-PREP-04** | Gate 3 (Prepared) | `comisarias_instaladas` | Validez | Valores enteros >= 0 | Crítica | Bloquea carga DW |
-| **DQ-PREP-05** | Gate 3 (Prepared) | `cantidad_victimas` | Consistencia | Suma == 1.501.809 (Delta = 0) | Crítica | Bloquea carga DW |
+### 5.2 El Modelo Dimensional Refinado (Ralph Kimball)
+* **`dim_geografia` (1.113 filas):** Enriquecida con los atributos de la API (`comisarias_instaladas`, `comisarias_requeridas_ley`, `brecha_comisarias`, `categoria_municipio`). Permite resolver R1, R2, R6 y R7 mediante consultas directas a nivel de estrella.
+* **`dim_comisaria` (1.247 filas - Outrigger):** Directorio detallado de comisarías físicas con dirección, teléfono, horario y ubicación para análisis operacional.
+* **`dim_tiempo` (6.056 filas):** Calendario continuo 2010–2026 con bandera `es_periodo_completo` para aislar el año parcial 2026.
+* **`dim_victima` (11 cohortes):** Género, grupo etario y bandera `es_menor_de_edad`.
+* **`dim_medio` (6 miembros):** Mecanismos armonizados y bandera `es_arma_letal`.
+* **`fact_violencia_intrafamiliar` (701.714 filas):** Grano formal municipal estricto `(id_tiempo, id_geografia, id_victima, id_medio)` protegido por `CONSTRAINT uq_fact_grano UNIQUE`. Medidas aditivas `cantidad_victimas` (1.501.809) y `numero_registros` (704.551 reportes colapsados).
 
-### 4.5 El Modelo Dimensional Refinado (PostgreSQL 16)
-Siguiendo los principios de modelado de Ralph Kimball:
-1. **`dim_geografia` (1.113 filas):** Actúa como dimensión consolidada y enriquecida con los atributos de la API (`categoria_municipio`, `comisarias_instaladas`, `comisarias_requeridas_ley`, `brecha_comisarias`, `tiene_comisaria`). Esta decisión de diseño permite resolver las consultas de R1, R2, R6 y R7 mediante consultas SQL simples a nivel de estrella sin desnormalizar la tabla de hechos.
-2. **`dim_comisaria` (1.247 filas - Outrigger):** Almacena el directorio operacional de sedes físicas con dirección, horario de atención, teléfono y correo electrónico para soporte operativo.
-3. **`dim_tiempo` (6.056 filas):** Cubre el calendario diario continuo entre 2010 y 2026. Incluye la bandera booleana `es_periodo_completo` para excluir el año parcial 2026 de los cálculos de series de tiempo interanuales.
-4. **`dim_victima` (11 cohortes):** Clasificación por género (`FEMENINO`, `MASCULINO`, `NO REPORTADO`) y ciclo vital (`ADULTOS`, `MENORES`, `ADOLESCENTES`, `NO REPORTADO`), con la bandera `es_menor_de_edad`.
-5. **`dim_medio` (6 miembros):** Armas y mecanismos armonizados con la bandera `es_arma_letal`.
-6. **`fact_violencia_intrafamiliar` (701.714 filas):** Grano formal declarado:
-   $$\text{Grano} = (\text{id\_tiempo}, \text{id\_geografia}, \text{id\_victima}, \text{id\_medio})$$
-   Protegido por el constraint de base de datos `CONSTRAINT uq_fact_grano UNIQUE (...)`. Contiene las medidas aditivas `cantidad_victimas` (1.501.809 víctimas totales) y `numero_registros` (704.551 reportes consolidados).
+### 5.3 Carga Masiva y Reconciliación Automatizada
+* Utiliza el protocolo de streaming binario `COPY ... FROM STDIN WITH (FORMAT CSV)` de PostgreSQL vía `psycopg2`.
+* Carga los 701.714 hechos en **menos de 17 segundos**.
+* Ejecuta consultas SQL post-carga inmediatas:
+  - Total registros esperados: 704.551 | Cargados: 704.551 | **Delta = 0**.
+  - Total víctimas esperadas: 1.501.809 | Cargadas: 1.501.809 | **Delta = 0**.
+  - Llaves foráneas huérfanas: **0**.
 
-### 4.6 Carga Masiva y Reconciliación Automatizada
-El script `src/load_dw.py` implementa el protocolo de streaming binario `COPY ... FROM STDIN WITH (FORMAT CSV)` de PostgreSQL. Esto permite insertar los 701.714 registros de hechos en **16,8 segundos**.
-
-Inmediatamente después de la carga, el script ejecuta queries de reconciliación matemática estricta:
-* Total de víctimas en origen primario: **1.501.809**
-* Total de víctimas en `fact_violencia_intrafamiliar`: **1.501.809**
-* **Diferencia (Delta de víctimas): 0 (0,000000%)**
-* Total de reportes en origen primario: **704.551**
-* Total de reportes en `fact_violencia_intrafamiliar`: **704.551**
-* **Diferencia (Delta de reportes): 0 (0,000000%)**
-* Claves foráneas huérfanas en el Data Warehouse: **0**
-
-### 4.7 Orquestación con Apache Airflow 3.X
-El archivo `dags/etl_violencia_intrafamiliar_dag.py` implementa la orquestación mediante el moderno TaskFlow API de Airflow:
-* **Interfaces Compactas:** Las tareas no intercambian DataFrames masivos por XCom (lo cual colapsaría la base de datos de metadatos de Airflow). En su lugar, intercambian metadatos de manifiesto tipo JSON (`{"status": "SUCCESS", "records": 704551, "file_path": "..."}`).
-* **Políticas de Reintento Selectivas y Justificadas:**
-  - `extract_api_task`: `retries=3, retry_delay=10s, retry_exponential_backoff=True` (diseñado para tolerancia a fallos ante microcortes o límites de tasa de la API remota).
-  - `load_dw_task`: `retries=1, retry_delay=5s` (tolerancia a fallos por reinicios transitorios del socket de PostgreSQL).
-  - Tareas de Calidad (`validate_primary_raw_task`, `validate_api_raw_task`, `validate_prepared_task`): `retries=0` (Fail Fast; un error de esquema o calidad es determinista y no debe reintentarse automáticamente).
+### 5.4 Orquestación y Confiabilidad (Airflow 3.X)
+* El DAG implementa el TaskFlow API con dependencias estrictas:
+  `extract_primary` $\rightarrow$ `validate_primary_raw`  
+  `extract_api` $\rightarrow$ `validate_api_raw`  
+  Ambas compuertas aprobadas $\rightarrow$ `transform_and_clean_and_integrate` $\rightarrow$ `validate_prepared` $\rightarrow$ `load_dimensional_dw`.
+* **Políticas de Reintento Selectivas:**
+  - Extracción de API: `retries=3, retry_delay=10s, exponential backoff` (resiliencia ante microcortes de red o límites de SODA API).
+  - Carga a DW: `retries=1, retry_delay=5s` (resiliencia ante sockets de base de datos).
+  - Compuertas de Calidad: `retries=0` (Fail Fast; los errores deterministas de calidad de datos nunca deben reintentarse automáticamente).
 
 ---
 
-## 5. Demostración de Confiabilidad de Ingeniería (Las 3 Pruebas Obligatorias)
+## 6. Demostración de Confiabilidad de Ingeniería (Las 3 Pruebas Obligatorias)
 
 El script `src/run_pipeline.py` ejecuta y documenta las tres pruebas obligatorias exigidas por la Sección 20 del PDF:
 
@@ -218,7 +217,7 @@ El script `src/run_pipeline.py` ejecuta y documenta las tres pruebas obligatoria
   - Gate 2 (`validate_api_raw`): **Aprobada** (4/4 checks superados).
   - Transformación e Integración: **Completada** (1.100 municipios emparejados, 11 no municipalizados integrados, 0 víctimas descartadas).
   - Gate 3 (`validate_prepared`): **Aprobada** (5/5 invariantes dimensionales superados).
-  - Carga a PostgreSQL DW: **Completada** en 19,63 segundos.
+  - Carga a PostgreSQL DW: **Completada** en 20,01 segundos.
   - Reconciliación: **100% exacta** (Delta = 0).
 
 ### Prueba B: Falla Crítica Controlada y Bloqueo de Tareas (Controlled Failure)
@@ -243,9 +242,26 @@ El script `src/run_pipeline.py` ejecuta y documenta las tres pruebas obligatoria
 
 ---
 
-## 6. Estructura de Evidencias y Directorios
+## 7. Herramientas y Tecnologías Utilizadas
 
-El repositorio `Proyecto_etl_C2` cuenta con la siguiente arquitectura de archivos:
+| Herramienta / Tecnología | Versión | Rol en la Solución | Justificación de Ingeniería |
+| :--- | :--- | :--- | :--- |
+| **Python** | 3.13 / 3.11 | Lenguaje principal del sistema | Ecosistema líder en Data Engineering, compatibilidad nativa con GX, Airflow y Pandas. |
+| **PostgreSQL** | 16 (Alpine) | Motor de Data Warehouse | Base de datos relacional robusta con soporte para streaming `COPY`, llaves foráneas estrictas y vistas analíticas optimizadas. |
+| **Docker & Docker Compose** | 29.4+ | Contenerización de infraestructura | Garantiza reproducibilidad de entorno del Data Warehouse en cualquier máquina host con un único comando. |
+| **Great Expectations** | 1.24.0 | Validación de calidad automatizada | Estándar de la industria para compuertas de calidad declarativas (GX 1.X Fluent API). |
+| **Apache Airflow** | 3.3.2 | Orquestación de flujos de trabajo | Orquestador líder. Permite modelar dependencias DAG, reintentos selectivos y observabilidad de estado. |
+| **Pandas & NumPy** | 2.2+ / 2.0+ | Transformación y normalización | Procesamiento vectorial eficiente en memoria para datasets de tamaño medio (700k filas). |
+| **PyArrow** | 15.0+ | Persistencia intermedia (Parquet) | Formato columnar comprimido con preservación estricta de tipos de datos para la capa procesada. |
+| **psycopg2-binary** | 2.9.12 | Conector nativo de PostgreSQL | Permite el uso del protocolo de streaming `COPY ... FROM STDIN WITH (FORMAT CSV)`, cargando 700k registros en 16 segundos. |
+| **HTML5 & Vanilla CSS** | W3C Modern | Interfaz de usuario del Dashboard | Arquitectura web ligera sin dependencias pesadas de Node/npm, con estética Glassmorphism, Dark Mode y responsive layout. |
+| **Chart.js** | 4.4.1 | Visualizaciones interactivas | Gráficos dinámicos de series de tiempo, barras apiladas, donas y dispersión para R1–R7. |
+| **Matplotlib** | 3.10.9 | Generación de diagramas técnicos | Creación programática de los diagramas de arquitectura del sistema y del modelo estrella relacional. |
+| **Jupyter & nbclient** | 7.3+ / 0.11+ | Notebook reproducible | Documentación viva del perfilamiento y validación con celdas ejecutadas y salidas persistidas. |
+
+---
+
+## 8. Estructura de Evidencias y Directorios
 
 ```
 Proyecto_etl_C2/
@@ -282,6 +298,7 @@ Proyecto_etl_C2/
 │   └── profiling_and_validation.ipynb # Notebook ejecutable con outputs persistidos
 ├── sql/
 │   ├── create_dw.sql                  # DDL de PostgreSQL con constraints y tipos
+│   ├── bi_views.sql                   # Vistas semánticas para el dashboard
 │   └── analytical_queries.sql         # Consultas analíticas SQL para R1 a R7
 └── src/
     ├── extract_primary.py             # Extracción con validación de hash SHA-256
