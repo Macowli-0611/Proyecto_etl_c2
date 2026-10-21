@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="light">
+<html lang="es" data-theme="medium">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +8,64 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
-    :root {
+    :root, [data-theme="medium"] {
+      --bg: #222a36;
+      --bg-alt: #1a222d;
+      --surface: #2d3747;
+      --surface-hover: #364254;
+      --border: #3f4e64;
+      --border-focus: #38bdf8;
+      --text: #ffffff;
+      --text-muted: #cbd5e1;
+      --text-dim: #94a3b8;
+      --primary: #38bdf8;
+      --primary-bg: rgba(56, 189, 248, 0.15);
+      --primary-border: rgba(56, 189, 248, 0.4);
+      --success: #34d399;
+      --success-bg: rgba(52, 211, 153, 0.15);
+      --success-border: rgba(52, 211, 153, 0.4);
+      --warning: #fbbf24;
+      --warning-bg: rgba(251, 191, 36, 0.15);
+      --warning-border: rgba(251, 191, 36, 0.4);
+      --danger: #f87171;
+      --danger-bg: rgba(248, 113, 113, 0.15);
+      --danger-border: rgba(248, 113, 113, 0.4);
+      --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.35);
+      --radius: 10px;
+    }
+
+    [data-theme="slate-light"] {
+      --bg: #dbe2ea;
+      --bg-alt: #cfd8e3;
+      --surface: #edf2f7;
+      --surface-hover: #e2e8f0;
+      --border: #b8c4d4;
+      --border-focus: #2563eb;
+      --text: #0f172a;
+      --text-muted: #334155;
+      --text-dim: #64748b;
+      --primary: #1d4ed8;
+      --primary-bg: rgba(37, 99, 235, 0.12);
+      --primary-border: rgba(37, 99, 235, 0.3);
+      --success: #059669;
+      --success-bg: rgba(5, 150, 105, 0.12);
+      --success-border: rgba(5, 150, 105, 0.3);
+      --warning: #b45309;
+      --warning-bg: rgba(180, 83, 9, 0.12);
+      --warning-border: rgba(180, 83, 9, 0.3);
+      --danger: #b91c1c;
+      --danger-bg: rgba(185, 28, 28, 0.12);
+      --danger-border: rgba(185, 28, 28, 0.3);
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+    }
+
+    [data-theme="light"] {
       --bg: #f8fafc;
       --bg-alt: #f1f5f9;
       --surface: #ffffff;
@@ -30,20 +87,17 @@
       --danger: #dc2626;
       --danger-bg: #fef2f2;
       --danger-border: #fecaca;
-      --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
       --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-      --radius: 10px;
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
     }
 
     [data-theme="dark"] {
-      --bg: #0f172a;
-      --bg-alt: #1e293b;
-      --surface: #1e293b;
-      --surface-hover: #334155;
-      --border: #334155;
+      --bg: #0b0f19;
+      --bg-alt: #131926;
+      --surface: #182030;
+      --surface-hover: #202b3f;
+      --border: #243046;
       --border-focus: #60a5fa;
       --text: #f8fafc;
       --text-muted: #cbd5e1;
@@ -1379,18 +1433,27 @@
       }
     }
 
+    const themeList = ['medium', 'slate-light', 'light', 'dark'];
+    const themeLabels = {
+      'medium': 'Tono Medio (Slate)',
+      'slate-light': 'Medio Claro (Platino)',
+      'light': 'Modo Claro',
+      'dark': 'Modo Oscuro'
+    };
+
     function toggleTheme() {
-      const current = document.documentElement.getAttribute('data-theme') || 'light';
-      const target = current === 'light' ? 'dark' : 'light';
+      const current = document.documentElement.getAttribute('data-theme') || 'medium';
+      const nextIdx = (themeList.indexOf(current) + 1) % themeList.length;
+      const target = themeList[nextIdx];
       document.documentElement.setAttribute('data-theme', target);
+      btnTheme.textContent = '🎨 ' + themeLabels[target];
       localStorage.setItem('presentation-theme', target);
     }
 
     // Load saved theme if any
-    const savedTheme = localStorage.getItem('presentation-theme');
-    if (savedTheme) {
-      document.documentElement.setAttribute('data-theme', savedTheme);
-    }
+    const savedTheme = localStorage.getItem('presentation-theme') || 'medium';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    btnTheme.textContent = '🎨 ' + (themeLabels[savedTheme] || 'Tono Medio');
 
     function openLightbox(src, caption) {
       lightboxImg.src = src;
