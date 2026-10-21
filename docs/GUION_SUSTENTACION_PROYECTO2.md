@@ -5,14 +5,14 @@
 
 ---
 
-## 👥 Tabla Rápida de Distribución (4 Integrantes)
+## 👥 Tabla de Distribución del Equipo (Asignación Oficial)
 
-| Integrante | Diapositivas | Eje Temático | Tiempo Sugerido |
+| Integrante | Diapositivas | Eje Temático Principal | Tiempo Sugerido |
 | :--- | :---: | :--- | :---: |
-| **Compañero 1** | **Diapos 1, 2 y 3** | Portada, El Problema de Negocio, Valor de la API y Arquitectura Global | ~3:30 min |
-| **Compañero 2** | **Diapos 4, 5 y 6** | Calidad Automática (Great Expectations), Contrato DANE y Modelo Estrella | ~3:30 min |
-| **Compañero 3** | **Diapos 7, 8 y 9** | Airflow 3 Task SDK, Pruebas de Confiabilidad (A, B, C) y Hallazgos R1 a R4 | ~4:00 min |
-| **Compañero 4** | **Diapos 10, 11 y 12** | Impacto Institucional (R5 a R7), Limitaciones, Aprendizajes y Cierre / Demo | ~3:30 min |
+| 👤 **Torres** | **Diapos 1, 2 y 3** | Portada, El Problema de Negocio, Valor de la API y Arquitectura Global | ~3:30 min |
+| 👤 **David** | **Diapos 4, 5 y 6** | Calidad Automática (Great Expectations), Contrato DANE y Modelo Estrella | ~3:30 min |
+| 👤 **Michael** | **Diapos 7, 8 y 9** | Airflow 3 Task SDK, Pruebas de Confiabilidad (A, B, C) y Hallazgos R1 a R4 | ~4:00 min |
+| 👤 **Manrique** | **Diapos 10, 11 y 12** | Impacto Institucional (R5 a R7), Limitaciones, Aprendizajes y Cierre / Demo | ~3:30 min |
 
 ---
 
@@ -29,10 +29,11 @@
 
 ---
 
-## 🔵 BLOQUE 1: CONTEXTO, NEGOCIO Y ARQUITECTURA (Compañero 1)
+## 🔵 BLOQUE 1: CONTEXTO, NEGOCIO Y ARQUITECTURA (Torres)
 
 ### 📌 Diapositiva 1: Portada y Presentación del Proyecto
-* **Acción en pantalla:** Mantener la portada visible. Señalar las 4 métricas numéricas centrales.
+* **Expositor:** **Torres**
+* **Acción en pantalla:** Mantener la portada visible. Señalar las 4 tarjetas numéricas centrales.
 * **Lo que debes decir:**
 > *"Buenos días / tardes, profesor y compañeros. Hoy les vamos a presentar la segunda entrega de nuestro proyecto de Ingeniería de Datos. Nuestro objetivo fue construir un pipeline ETL automatizado y robusto que conecta el histórico de violencia intrafamiliar en Colombia con la capacidad de respuesta institucional del Estado.*
 >
@@ -43,6 +44,7 @@
 ---
 
 ### 📌 Diapositiva 2: El Problema de Negocio y el Aporte de la API SODA
+* **Expositor:** **Torres**
 * **Acción en pantalla:** Pasar a Diapositiva 2. Contrastar columna izquierda ("Lo que teníamos") con columna derecha ("Lo que logramos").
 * **Lo que debes decir:**
 > *"En la primera entrega analizamos únicamente los datos de la Policía Nacional. Sabíamos con exactitud dónde, cuándo y con qué frecuencia ocurrían las agresiones. Sin embargo, teníamos una limitación analítica de fondo: saber que un municipio tiene 500 denuncias al año no nos decía si el Estado tenía capacidad instalada para proteger a esas personas o si las comisarías estaban colapsadas.*
@@ -54,6 +56,7 @@
 ---
 
 ### 📌 Diapositiva 3: Arquitectura del Sistema y Flujo de Datos
+* **Expositor:** **Torres**
 * **Acción en pantalla:** Pasar a Diapositiva 3. Dar un clic sobre la imagen del diagrama de flujo para abrir el Lightbox Zoom. Explicar las 4 etapas.
 * **Lo que debes decir:**
 > *(Con el diagrama ampliado)*: *"Nuestra arquitectura está diseñada bajo un principio modular y desacoplado de cuatro etapas:*
@@ -66,15 +69,16 @@
 >
 > *4. Carga Atómica Transaccional: El Data Warehouse se carga bajo una única transacción ACID en PostgreSQL. Si una sola tabla llega a fallar, el motor ejecuta un rollback total, evitando que la base quede corrupta o a medio llenar.*
 >
-> *Ahora mi compañero les explicará cómo garantizamos matemáticamente que los datos no lleguen corruptos a la base de datos."*
+> *Ahora mi compañero David les explicará cómo garantizamos matemáticamente que los datos no lleguen corruptos a la base de datos."*
 >
 > *(Cerrar el Lightbox con la tecla ESC o dando clic en la X).*
 
 ---
 
-## 🟢 BLOQUE 2: CALIDAD, INTEGRACIÓN Y MODELO DIMENSIONAL (Compañero 2)
+## 🟢 BLOQUE 2: CALIDAD, INTEGRACIÓN Y MODELO DIMENSIONAL (David)
 
 ### 📌 Diapositiva 4: Control de Calidad Automático con Great Expectations
+* **Expositor:** **David**
 * **Acción en pantalla:** Pasar a Diapositiva 4. Señalar las 3 compuertas (Gates 1, 2 y 3).
 * **Lo que debes decir:**
 > *"Para garantizar la confiabilidad del sistema implementamos Great Expectations 1.X, configurando 16 reglas de calidad organizadas en tres compuertas automáticas:*
@@ -88,6 +92,7 @@
 ---
 
 ### 📌 Diapositiva 5: El Contrato de Integración y la Deduplicación al Grano
+* **Expositor:** **David**
 * **Acción en pantalla:** Pasar a Diapositiva 5. Señalar las dos métricas inferiores (2,837 filas colapsadas y 1,501,809 víctimas conservadas).
 * **Lo que debes decir:**
 > *"Integrar dos fuentes distintas siempre genera discrepancias. Aquí resolvimos dos problemas de ingeniería fundamentales:*
@@ -101,6 +106,7 @@
 ---
 
 ### 📌 Diapositiva 6: Modelo Dimensional en Estrella (Star Schema)
+* **Expositor:** **David**
 * **Acción en pantalla:** Pasar a Diapositiva 6. Dar clic en la imagen del esquema dimensional para ampliarla con Lightbox Zoom.
 * **Lo que debes decir:**
 > *(Con el esquema dimensional ampliado)*: *"Con los datos limpios y validados, diseñamos un modelo dimensional en estrella en PostgreSQL 16 optimizado para el motor de Power BI.*
@@ -116,15 +122,16 @@
 >
 > *Todas las dimensiones utilizan claves sustitutas enteras (Surrogate Keys) con índices B-Tree, garantizando que los filtros en Power BI respondan de manera instantánea.*
 >
-> *A continuación, mi compañero les mostrará cómo orquestamos esto en Apache Airflow y las pruebas de falla que realizamos."*
+> *A continuación, Michael les mostrará cómo orquestamos esto en Apache Airflow y las pruebas de falla que realizamos."*
 >
 > *(Cerrar el Lightbox).*
 
 ---
 
-## 🟡 BLOQUE 3: AIRFLOW 3, PRUEBAS DE CONFIABILIDAD Y POWER BI (Compañero 3)
+## 🟡 BLOQUE 3: AIRFLOW 3, PRUEBAS DE CONFIABILIDAD Y POWER BI (Michael)
 
 ### 📌 Diapositiva 7: Orquestación en Airflow 3 Task SDK y Reintentos
+* **Expositor:** **Michael**
 * **Acción en pantalla:** Pasar a Diapositiva 7. Explicar el concepto de XCom ligero y la tabla de reintentos.
 * **Lo que debes decir:**
 > *"El pipeline completo está orquestado con Apache Airflow 3 utilizando el Task SDK moderno con decoradores @dag y @task, sin código deprecado.*
@@ -139,6 +146,7 @@
 ---
 
 ### 📌 Diapositiva 8: Pruebas Reales de Confiabilidad en Airflow (A, B y C)
+* **Expositor:** **Michael**
 * **Acción en pantalla:** Pasar a Diapositiva 8. **Esta diapositiva es clave.** Señalar la tabla comparativa con los estados de las tareas. Si el profesor lo pide, dar clic en "Abrir Webserver ↗" para ir a `http://localhost:8080`.
 * **Lo que debes decir:**
 > *"Esta tabla que ven aquí refleja exactamente lo que se ve en la interfaz de Airflow en localhost:8080 tras ejecutar las pruebas de confiabilidad exigidas por la rúbrica:*
@@ -154,6 +162,7 @@
 ---
 
 ### 📌 Diapositiva 9: Hallazgos en Power BI: Patrones de Violencia (R1 a R4)
+* **Expositor:** **Michael**
 * **Acción en pantalla:** Pasar a Diapositiva 9. Puedes hacer clic en cualquiera de las 4 tarjetas para abrir el gráfico en grande con Lightbox Zoom.
 * **Lo que debes decir:**
 > *"Con el Data Warehouse cargado, conectamos Power BI directamente a las vistas analíticas para resolver las preguntas de negocio:*
@@ -163,13 +172,14 @@
 > *- R3 (Brecha de Género): El 76.8% de las víctimas son mujeres, presentándose la mayor concentración en mujeres adultas jóvenes de entre 20 y 39 años.*
 > *- R4 (Mecanismos de Agresión): Más del 90% de los ataques se cometen con elementos contundentes y agresión física directa sin armas de fuego, lo cual caracteriza la naturaleza íntima y cotidiana de este flagelo.*
 >
-> *Ahora mi compañero les expondrá los hallazgos institucionales logrados gracias a la API y el cierre del proyecto."*
+> *Ahora Manrique les expondrá los hallazgos institucionales logrados gracias a la API y el cierre del proyecto."*
 
 ---
 
-## 🟣 BLOQUE 4: CAPACIDAD ESTATAL, APRENDIZAJES Y DEMO (Compañero 4)
+## 🟣 BLOQUE 4: CAPACIDAD ESTATAL, APRENDIZAJES Y DEMO (Manrique)
 
 ### 📌 Diapositiva 10: Capacidad del Estado y Vacíos de Cobertura (R5 a R7)
+* **Expositor:** **Manrique**
 * **Acción en pantalla:** Pasar a Diapositiva 10. Señalar con especial énfasis las tarjetas R6 (Sobrecarga) y R7 (Municipios Críticos).
 * **Lo que debes decir:**
 > *"Aquí es donde se hace evidente el valor de haber integrado la API de Comisarías de Familia:*
@@ -185,6 +195,7 @@
 ---
 
 ### 📌 Diapositiva 11: Limitaciones y Aprendizajes de Ingeniería
+* **Expositor:** **Manrique**
 * **Acción en pantalla:** Pasar a Diapositiva 11. Contrastar las limitaciones de los datos reales con los aprendizajes técnicos.
 * **Lo que debes decir:**
 > *"Como ingenieros, debemos ser críticos respecto a las limitaciones y alcances de nuestro sistema:*
@@ -199,6 +210,7 @@
 ---
 
 ### 📌 Diapositiva 12: Conclusiones y Demostración en Vivo
+* **Expositor:** **Manrique**
 * **Acción en pantalla:** Pasar a Diapositiva 12. Señalar el cumplimiento de la rúbrica y los servicios corriendo en Docker.
 * **Lo que debes decir:**
 > *"Para concluir, confirmamos el cumplimiento del 100% de los requerimientos de la segunda entrega:*
@@ -216,34 +228,34 @@
 # 🧠 Banco de Preguntas Frecuentes del Evaluador (Para que no los corchen)
 
 ### ❓ P1: "¿Cómo garantizan que al integrar ambas fuentes no se duplicaron víctimas?"
-* **Quién responde:** Compañero 2.
+* **Quién responde:** **David**
 * **Respuesta clave:**
 > *"Lo garantizamos en dos niveles: en la transformación y en la Compuerta 3 de Great Expectations. Declaramos un grano atómico (Fecha, Municipio, Perfil y Arma). Cuando existían filas repetidas en el archivo crudo, agrupamos por el grano y sumarizamos el campo de cantidad de víctimas en lugar de descartar filas. Luego, la Compuerta 3 ejecuta una prueba de reconciliación matemática estricta: suma el total de víctimas del archivo crudo (1,501,809) y lo compara contra la suma en la tabla de hechos. Si la diferencia es distinta de cero, el pipeline aborta. El delta fue exactamente cero."*
 
 ---
 
 ### ❓ P2: "¿Por qué tienen retries=0 en las compuertas de validación de Airflow?"
-* **Quién responde:** Compañero 3.
+* **Quién responde:** **Michael**
 * **Respuesta clave:**
 > *"Porque diferenciamos fallos transitorios de fallos determinísticos. Si una API falla por un timeout de red, tiene sentido reintentar porque la red se puede recuperar sola. Pero si Great Expectations detecta que al archivo le falta una columna obligatoria o que hay tipos de datos corruptos, reintentar 3 veces sobre el mismo archivo va a arrojar exactamente el mismo error, desperdiciando recursos de cómputo y retrasando la alerta. Por eso, en validación de datos determinísticos configuramos 0 reintentos y lanzamos AirflowFailException de inmediato."*
 
 ---
 
 ### ❓ P3: "¿Qué pasa si la API del MinJusticia se cae durante la ejecución?"
-* **Quién responde:** Compañero 1 o 3.
+* **Quién responde:** **Torres** (o Michael)
 * **Respuesta clave:**
 > *"El extractor de la API tiene dos mecanismos de defensa: primero, tiene 3 reintentos automáticos con espera de 2 minutos para absorber caídas momentáneas del servidor de Socrata. Y segundo, si tras los reintentos la API sigue sin responder, el pipeline cuenta con un mecanismo de fallback que lee automáticamente una copia local versionada en Parquet validada con hash SHA-256, garantizando que el pipeline nunca detenga la carga del Data Warehouse por indisponibilidad externa."*
 
 ---
 
 ### ❓ P4: "¿Cómo comprobaron la idempotencia en la base de datos (Test C)?"
-* **Quién responde:** Compañero 2 o 3.
+* **Quién responde:** **David** (o Michael)
 * **Respuesta clave:**
 > *"Ejecutamos el pipeline completo dos veces seguidas sobre el mismo lote de datos. Antes y después de la segunda corrida, ejecutamos consultas SQL de conteo (`SELECT COUNT(*)`) sobre las 6 tablas del Data Warehouse. Comprobamos que el delta fue exactamente 0 en todas las tablas y que no se generó una sola fila duplicada ni en hechos ni en dimensiones, gracias al uso de staging intermedio y transacciones atómicas."*
 
 ---
 
 ### ❓ P5: "¿Por qué Power BI se conecta al Data Warehouse y no a los archivos Parquet directamente?"
-* **Quién responde:** Compañero 4.
+* **Quién responde:** **Manrique**
 * **Respuesta clave:**
 > *"Porque el Data Warehouse en PostgreSQL centraliza la lógica de negocio, las claves sustitutas, la integridad referencial y las vistas analíticas. Si conectáramos Power BI a archivos dispersos, la lógica de joins y agregaciones quedaría acoplada a la herramienta de visualización. Con el modelo en estrella en la base de datos, cualquier otra herramienta futura (como Tableau, Looker o Python) consume la misma versión única y confiable de la verdad."*
