@@ -5,13 +5,13 @@
 
 ---
 
-## 👥 Tabla de Distribución del Equipo (Nuevo Sorteo Oficial)
+## 👥 Tabla de Distribución del Equipo (Asignación Oficial)
 
 | Integrante | Diapositivas | Eje Temático Principal | Tiempo Sugerido |
 | :--- | :---: | :--- | :---: |
 | 👤 **Michael** | **Diapos 1, 2 y 3** | Portada, El Problema de Negocio, Valor de la API y Arquitectura Global | ~3:30 min |
-| 👤 **David** | **Diapos 4, 5 y 6** | Calidad Automática (Great Expectations), Contrato DANE y Modelo Estrella | ~3:30 min |
-| 👤 **Manrique** | **Diapos 7, 8 y 9** | Airflow 3 Task SDK, Pruebas de Confiabilidad (A, B, C) y Hallazgos R1 a R4 | ~4:00 min |
+| 👤 **Manrique** | **Diapos 4, 5 y 6** | Calidad Automática (Great Expectations), Contrato DANE y Modelo Estrella | ~3:30 min |
+| 👤 **David** | **Diapos 7, 8 y 9** | Airflow 3 Task SDK, Pruebas de Confiabilidad (A, B, C) y Hallazgos R1 a R4 | ~4:00 min |
 | 👤 **Torres** | **Diapos 10, 11 y 12** | Impacto Institucional (R5 a R7), Limitaciones, Aprendizajes y Cierre / Demo | ~3:30 min |
 
 ---
@@ -69,16 +69,16 @@
 >
 > *4. Carga Atómica Transaccional: El Data Warehouse se carga bajo una única transacción ACID en PostgreSQL. Si una sola tabla llega a fallar, el motor ejecuta un rollback total, evitando que la base quede corrupta o a medio llenar.*
 >
-> *Ahora mi compañero David les explicará cómo garantizamos matemáticamente que los datos no lleguen corruptos a la base de datos."*
+> *Ahora mi compañero Manrique les explicará cómo garantizamos matemáticamente que los datos no lleguen corruptos a la base de datos."*
 >
 > *(Cerrar el Lightbox con la tecla ESC o dando clic en la X).*
 
 ---
 
-## 🟢 BLOQUE 2: CALIDAD, INTEGRACIÓN Y MODELO DIMENSIONAL (David)
+## 🟢 BLOQUE 2: CALIDAD, INTEGRACIÓN Y MODELO DIMENSIONAL (Manrique)
 
 ### 📌 Diapositiva 4: Control de Calidad Automático con Great Expectations
-* **Expositor:** **David**
+* **Expositor:** **Manrique**
 * **Acción en pantalla:** Pasar a Diapositiva 4. Señalar las 3 compuertas (Gates 1, 2 y 3).
 * **Lo que debes decir:**
 > *"Para garantizar la confiabilidad del sistema implementamos Great Expectations 1.X, configurando 16 reglas de calidad organizadas en tres compuertas automáticas:*
@@ -92,7 +92,7 @@
 ---
 
 ### 📌 Diapositiva 5: El Contrato de Integración y la Deduplicación al Grano
-* **Expositor:** **David**
+* **Expositor:** **Manrique**
 * **Acción en pantalla:** Pasar a Diapositiva 5. Señalar las dos métricas inferiores (2,837 filas colapsadas y 1,501,809 víctimas conservadas).
 * **Lo que debes decir:**
 > *"Integrar dos fuentes distintas siempre genera discrepancias. Aquí resolvimos dos problemas de ingeniería fundamentales:*
@@ -106,7 +106,7 @@
 ---
 
 ### 📌 Diapositiva 6: Modelo Dimensional en Estrella (Star Schema)
-* **Expositor:** **David**
+* **Expositor:** **Manrique**
 * **Acción en pantalla:** Pasar a Diapositiva 6. Dar clic en la imagen del esquema dimensional para ampliarla con Lightbox Zoom.
 * **Lo que debes decir:**
 > *(Con el esquema dimensional ampliado)*: *"Con los datos limpios y validados, diseñamos un modelo dimensional en estrella en PostgreSQL 16 optimizado para el motor de Power BI.*
@@ -122,16 +122,16 @@
 >
 > *Todas las dimensiones utilizan claves sustitutas enteras (Surrogate Keys) con índices B-Tree, garantizando que los filtros en Power BI respondan de manera instantánea.*
 >
-> *A continuación, Manrique les mostrará cómo orquestamos esto en Apache Airflow y las pruebas de falla que realizamos."*
+> *A continuación, David les mostrará cómo orquestamos esto en Apache Airflow y las pruebas de falla que realizamos."*
 >
 > *(Cerrar el Lightbox).*
 
 ---
 
-## 🟡 BLOQUE 3: AIRFLOW 3, PRUEBAS DE CONFIABILIDAD Y POWER BI (Manrique)
+## 🟡 BLOQUE 3: AIRFLOW 3, PRUEBAS DE CONFIABILIDAD Y POWER BI (David)
 
 ### 📌 Diapositiva 7: Orquestación en Airflow 3 Task SDK y Reintentos
-* **Expositor:** **Manrique**
+* **Expositor:** **David**
 * **Acción en pantalla:** Pasar a Diapositiva 7. Explicar el concepto de XCom ligero y la tabla de reintentos.
 * **Lo que debes decir:**
 > *"El pipeline completo está orquestado con Apache Airflow 3 utilizando el Task SDK moderno con decoradores @dag y @task, sin código deprecado.*
@@ -146,7 +146,7 @@
 ---
 
 ### 📌 Diapositiva 8: Pruebas Reales de Confiabilidad en Airflow (A, B y C)
-* **Expositor:** **Manrique**
+* **Expositor:** **David**
 * **Acción en pantalla:** Pasar a Diapositiva 8. **Esta diapositiva es clave.** Señalar la tabla comparativa con los estados de las tareas. Si el profesor lo pide, dar clic en "Abrir Webserver ↗" para ir a `http://localhost:8080`.
 * **Lo que debes decir:**
 > *"Esta tabla que ven aquí refleja exactamente lo que se ve en la interfaz de Airflow en localhost:8080 tras ejecutar las pruebas de confiabilidad exigidas por la rúbrica:*
@@ -162,7 +162,7 @@
 ---
 
 ### 📌 Diapositiva 9: Hallazgos en Power BI: Patrones de Violencia (R1 a R4)
-* **Expositor:** **Manrique**
+* **Expositor:** **David**
 * **Acción en pantalla:** Pasar a Diapositiva 9. Puedes hacer clic en cualquiera de las 4 tarjetas para abrir el gráfico en grande con Lightbox Zoom.
 * **Lo que debes decir:**
 > *"Con el Data Warehouse cargado, conectamos Power BI directamente a las vistas analíticas para resolver las preguntas de negocio:*
@@ -228,28 +228,28 @@
 # 🧠 Banco de Preguntas Frecuentes del Evaluador (Para que no los corchen)
 
 ### ❓ P1: "¿Cómo garantizan que al integrar ambas fuentes no se duplicaron víctimas?"
-* **Quién responde:** **David**
+* **Quién responde:** **Manrique**
 * **Respuesta clave:**
 > *"Lo garantizamos en dos niveles: en la transformación y en la Compuerta 3 de Great Expectations. Declaramos un grano atómico (Fecha, Municipio, Perfil y Arma). Cuando existían filas repetidas en el archivo crudo, agrupamos por el grano y sumarizamos el campo de cantidad de víctimas en lugar de descartar filas. Luego, la Compuerta 3 ejecuta una prueba de reconciliación matemática estricta: suma el total de víctimas del archivo crudo (1,501,809) y lo compara contra la suma en la tabla de hechos. Si la diferencia es distinta de cero, el pipeline aborta. El delta fue exactamente cero."*
 
 ---
 
 ### ❓ P2: "¿Por qué tienen retries=0 en las compuertas de validación de Airflow?"
-* **Quién responde:** **Manrique**
+* **Quién responde:** **David**
 * **Respuesta clave:**
 > *"Porque diferenciamos fallos transitorios de fallos determinísticos. Si una API falla por un timeout de red, tiene sentido reintentar porque la red se puede recuperar sola. Pero si Great Expectations detecta que al archivo le falta una columna obligatoria o que hay tipos de datos corruptos, reintentar 3 veces sobre el mismo archivo va a arrojar exactamente el mismo error, desperdiciando recursos de cómputo y retrasando la alerta. Por eso, en validación de datos determinísticos configuramos 0 reintentos y lanzamos AirflowFailException de inmediato."*
 
 ---
 
 ### ❓ P3: "¿Qué pasa si la API del MinJusticia se cae durante la ejecución?"
-* **Quién responde:** **Michael** (o Manrique)
+* **Quién responde:** **Michael** (o David)
 * **Respuesta clave:**
 > *"El extractor de la API tiene dos mecanismos de defensa: primero, tiene 3 reintentos automáticos con espera de 2 minutos para absorber caídas momentáneas del servidor de Socrata. Y segundo, si tras los reintentos la API sigue sin responder, el pipeline cuenta con un mecanismo de fallback que lee automáticamente una copia local versionada en Parquet validada con hash SHA-256, garantizando que el pipeline nunca detenga la carga del Data Warehouse por indisponibilidad externa."*
 
 ---
 
 ### ❓ P4: "¿Cómo comprobaron la idempotencia en la base de datos (Test C)?"
-* **Quién responde:** **David** (o Manrique)
+* **Quién responde:** **Manrique** (o David)
 * **Respuesta clave:**
 > *"Ejecutamos el pipeline completo dos veces seguidas sobre el mismo lote de datos. Antes y después de la segunda corrida, ejecutamos consultas SQL de conteo (`SELECT COUNT(*)`) sobre las 6 tablas del Data Warehouse. Comprobamos que el delta fue exactamente 0 en todas las tablas y que no se generó una sola fila duplicada ni en hechos ni en dimensiones, gracias al uso de staging intermedio y transacciones atómicas."*
 
