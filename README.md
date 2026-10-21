@@ -512,7 +512,20 @@ docker compose exec postgres_dw psql -U postgres -d etl_dw -c "SELECT COUNT(*) A
 * **Reinicio limpio de contenedores:** Ejecute `docker compose down -v` y luego `docker compose up -d`.
 * **Conectividad con la API:** Si la red externa falla, el sistema utiliza automáticamente la caché local de `data/raw/api_comisarias_raw.json` para garantizar reproducibilidad sin cortes.
 
-### 23.3 Quick Reference Table
+### 23.3 Comandos de Gestión y Operación de Airflow
+
+| Acción | Comando (Windows PowerShell / Bash) | Descripción |
+| :--- | :--- | :--- |
+| **Prender Airflow** | `docker compose up -d airflow` | Inicia o levanta el servicio de Airflow en segundo plano. |
+| **Apagar Airflow** | `docker compose stop airflow` | Detiene temporalmente Airflow sin borrar datos ni configuraciones. |
+| **Ver si está activo** | `docker compose ps` | Muestra el estado del contenedor (`Up`) y el puerto activo (`8080`). |
+| **Ver si el DAG está pausado** | `docker compose exec airflow airflow dags list` | Lista los DAGs y confirma si `is_paused` es `False` (activo) o `True`. |
+| **Despausar el DAG** | `docker compose exec airflow airflow dags unpause etl_violencia_intrafamiliar_segunda_entrega` | Activa el DAG para que responda a ejecuciones manuales o programadas. |
+| **Pausar el DAG** | `docker compose exec airflow airflow dags pause etl_violencia_intrafamiliar_segunda_entrega` | Pausa el DAG para evitar ejecuciones automáticas. |
+| **Ver historial de ejecuciones** | `docker compose exec airflow airflow dags list-runs -d etl_violencia_intrafamiliar_segunda_entrega` | Muestra la lista de ejecuciones pasadas, fecha y estado (`success`/`failed`). |
+| **Limpiar historial / Reset** | `docker compose exec airflow airflow db reset -y` | Reinicia la base de metadatos de Airflow, limpiando logs y ejecuciones anteriores. |
+
+### 23.4 Quick Reference Table
 
 | Action | Windows (PowerShell / CMD) | Linux / macOS |
 | :--- | :--- | :--- |
