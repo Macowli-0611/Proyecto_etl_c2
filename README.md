@@ -391,7 +391,7 @@ python3 dashboard/server.py
 ## 25. Team Members and Responsibilities
 
 * **Course:** ETL (G01) — Academic Period 2026-2
-* **Delivery 2 Repository:** [https://github.com/michaelmaccardona-lgtm/Proyecto_etl_c2](https://github.com/michaelmaccardona-lgtm/Proyecto_etl_c2)
+* **Delivery 2 Repository:** [https://github.com/Macowli-0611/Proyecto_etl_c2](https://github.com/Macowli-0611/Proyecto_etl_c2)
 
 | Team Member | Core Responsibilities in Second Delivery |
 | :--- | :--- |
