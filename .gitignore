@@ -1,3 +1,6 @@
+# Excluir documentos de la entrega 1
+docs_proyecto_1/
+
 # Environment and secrets
 .env
 *.env.local
