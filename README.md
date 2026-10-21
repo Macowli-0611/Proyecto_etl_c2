@@ -68,15 +68,17 @@ Evolve the Phase 1 analytical baseline into an automated, observable, and resili
 * **Format & Volume:** CSV, UTF-8, 65.6 MB, 704,551 records, 1,501,809 victims, 8 native attributes.
 * **Extraction:** Programmatic acquisition with SHA-256 validation pinned in `data/raw/primary_source_manifest.json`.
 
-### 5.2 API Source
-* **Provider:** Ministerio de Justicia y del Derecho / Presidencia de la República
-* **Dataset:** Caracterización de las Comisarías de Familia en el Territorio Nacional
-* **Platform:** SODA REST API on `datos.gov.co`
-* **Endpoint:** `https://www.datos.gov.co/resource/7tuu-upb2.json`
-* **Format & Volume:** JSON REST API, 1,249 entries covering 1,102 municipalities, 15 attributes.
-* **Operational Parameters:** `$limit=2000`, `$offset`, `$order=:id`, timeout=30s, exponential backoff retries.
-* **Authentication:** Public endpoint with optional `X-App-Token` via `API_APP_TOKEN` in `.env`.
-* **Raw Persistence:** Pinned payload saved to `data/raw/api_comisarias_raw.json` with hash recorded in `data/raw/api_source_manifest.json`.
+### 5.2 API Source: Suitability and Technical Documentation (Table 4.1)
+
+| Item | Required Documentation |
+| :--- | :--- |
+| **Provider and purpose** | Ministerio de Justicia y del Derecho / Presidencia de la República. Caracterización geográfica, administrativa y de infraestructura física de las Comisarías de Familia en todo el territorio nacional. |
+| **Analytical value** | Complementa el reporte de delitos de la Policía Nacional con la oferta institucional instalada y la capacidad de respuesta legal (Ley 2126 de 2021), permitiendo responder R6 y R7. |
+| **Endpoint and parameters** | Endpoint: `https://www.datos.gov.co/resource/7tuu-upb2.json`. Parámetros: `$limit=2000`, `$offset`, `$order=:id`. Alcance: cobertura nacional completa (1.249 registros). |
+| **Response** | Formato JSON REST API. 15 atributos que caracterizan departamento, municipio, código DANE, categoría municipal, existencia de comisarías, exigencia legal de comisarías y datos de contacto. |
+| **Authentication** | Endpoint público con autenticación opcional por cabecera `X-App-Token` (gestionada mediante `API_APP_TOKEN` en `.env` sin exponer credenciales). |
+| **Operational behavior** | Paginación por offset/limit, timeouts configurables (30s), reintentos con retroceso exponencial ante errores HTTP 429/503 y registro del timestamp de extracción en `data/raw/api_source_manifest.json`. |
+| **Reproducibility** | El evaluador puede ejecutar `python3 -c "from src.extract_api import extract_api_data; extract_api_data(force_refresh=True)"` o consultar el payload estático versionado en `data/raw/api_comisarias_raw.json` verificado con SHA-256. |
 
 ---
 
@@ -151,13 +153,13 @@ Great Expectations Gate 1              Great Expectations Gate 2
 
 Full profiling evidence generated automatically in [`docs/evidence/profiling_evidence.json`](docs/evidence/profiling_evidence.json) and executed in [`notebooks/profiling_and_validation.ipynb`](notebooks/profiling_and_validation.ipynb).
 
-| # | Source | Attribute / Domain | Profiling Finding | Potential Quality Risk | Mitigation in Pipeline |
-| :-: | :---: | :--- | :--- | :--- | :--- |
-| 1 | Primary | `CODIGO DANE` | 2,397 distinct 8-digit codes reaching *centro poblado* level. | Rolled up blindly, records split across sub-municipal keys. | Truncated to 5 digits (`DDMMM`); collapses 2,837 rows to municipal grain. |
-| 2 | Primary | `CANTIDAD` | Range 1–198; 0 non-positive; 0 nulls; mean 2.13. Total: 1,501,809. | Outliers could distort averages if not treated as additive sums. | Reconciled at pre-load, post-transform, and post-load gates. |
-| 3 | API | `c_digo_dane_municipio` | Text codes with length 4 (e.g. `5088`) and 5 (e.g. `11001`). 114 codes missing leading zero. | Leading zeros lost if read as integer; join fails. | Formatted strictly with `.str.strip().str.zfill(5)`. |
-| 4 | API | `categoria_municipio` | Categorías 1–6, `ESP`, plus 17 null values. | Unhandled null categories in dimension drill-downs. | Standardized `ESP` → `ESPECIAL`, imputed `NO REPORTADA`. |
-| 5 | Cross | `codigo_dane_municipio` | 1,100 municipalities match (98.92% coverage). 12 primary codes and 2 API codes unmatched. | Unmatched records could drop victims or break FK constraints. | Left outer join contract: non-municipalized areas get default baseline; API municipalities added to `dim_geografia`. |
+| Dataset or Attribute | Profiling Evidence | Potential Quality Risk | Related Requirement | Mitigation in Pipeline |
+| :--- | :--- | :--- | :---: | :--- |
+| **Primary:** `CODIGO DANE` | 2,397 distinct 8-digit codes reaching *centro poblado* level. | Records split across sub-municipal keys; grain dilution. | R2, R5, R6, R7 | Truncated to 5 digits (`DDMMM`); collapses 2,837 rows to municipal grain. |
+| **Primary:** `CANTIDAD` | Range 1–198; 0 non-positive; 0 nulls; mean 2.13. Total: 1,501,809. | Outliers could distort averages if not treated as additive sums. | R1, R4, R6 | Reconciled at pre-load, post-transform, and post-load gates. |
+| **API:** `c_digo_dane_municipio` | Text codes with length 4 (e.g. `5088`) and 5 (e.g. `11001`). 114 codes missing leading zero. | Leading zeros lost if read as integer; equi-join fails. | R6, R7 | Formatted strictly with `.str.strip().str.zfill(5)`. |
+| **API:** `categoria_municipio` | Categorías 1–6, `ESP`, plus 17 null values. | Unhandled null categories in dimension drill-downs. | R7 | Standardized `ESP` → `ESPECIAL`, imputed `NO REPORTADA`. |
+| **Cross-Source:** `codigo_dane_municipio` | 1,100 municipalities match (98.92% coverage). 12 primary codes and 2 API codes unmatched. | Unmatched records could drop victims or break FK constraints. | R6, R7 | Left outer join contract: non-municipalized areas get default baseline; API municipalities added to `dim_geografia`. |
 
 ---
 
@@ -185,11 +187,29 @@ Full profiling evidence generated automatically in [`docs/evidence/profiling_evi
 ## 10. Great Expectations Design and Rule Traceability
 
 * **GX Version:** 1.24.0 (Fluent DataContext API).
-* **Implementation:** `src/validate_gx.py`.
+* **Declarative Suite Repository:** `gx/` root directory containing:
+  * `gx/expectations/primary_raw_suite.json` (Gate 1: Raw Primary Validation)
+  * `gx/expectations/api_raw_suite.json` (Gate 2: Raw API Validation)
+  * `gx/expectations/prepared_data_suite.json` (Gate 3: Prepared Data & Reconciliation Validation)
+  * `gx/checkpoints/` and `gx/validation_definitions/` for declarative execution.
+  * `gx/gx_config.yaml` and `gx/README_GX.md` with complete rule traceability matrix.
+* **Implementation:** `src/validate_gx.py` loads and synchronizes suites directly with the `gx/` directory.
 * **Execution Evidence:** JSON execution results saved automatically in `docs/evidence/` with timestamped and latest pointers.
 * **Severity Enforcement:**
-  * **Critical:** Raises `ValidationError`. In Airflow, task fails with exit code 1; downstream dependencies are immediately marked `UPSTREAM_FAILED` and aborted.
-  * **Warning:** Logs details, records unexpected counts/indices, and allows normal continuation.
+  * **Critical:** Raises `ValidationError` in Python and `AirflowFailException` in Airflow 3.1.8. Task fails with exit code 1; downstream dependencies are immediately marked `UPSTREAM_FAILED` and aborted.
+  * **Warning:** Logs details, records unexpected counts/indices in JSON evidence, and allows normal pipeline continuation.
+
+### 10.1 GX Elements and Pipeline Interpretation (Table 10)
+
+| GX Element | What the Team Must Explain | Project Implementation |
+| :--- | :--- | :--- |
+| **Data object** | Which batch, table, file, or prepared representation is being validated. | Raw primary batch (`df_raw`), raw API payload (`df_api`), and prepared dimensional tables (`fact_violencia_intrafamiliar`, `dim_geografia`, `dim_tiempo`, `dim_victima`, `dim_medio`). |
+| **Expectation** | Which explicit quality rule the Expectation implements and which parameters represent its metric or threshold. | Reglas `DQ-RAW1-01` a `05`, `DQ-RAW2-01` a `04` y `DQ-PREP-01` a `05` implementadas con `gxe.ExpectTableColumnsToMatchSet`, `gxe.ExpectColumnValueLengthsToBeBetween`, `gxe.ExpectColumnValuesToBeBetween`, etc. |
+| **Expectation Suite** | Why the grouped checks belong to the same data object and layer. | Agrupadas en 3 suites independientes por ciclo de vida (`primary_raw_suite.json`, `api_raw_suite.json`, `prepared_data_suite.json`) para evitar acoplamiento entre fuentes. |
+| **Validation Definition** | How the data definition and Expectation Suite are associated for repeatable execution. | Mapeados en `gx/validation_definitions/*.json` vinculando cada Data Asset y Batch Definition a su Expectation Suite correspondiente. |
+| **Checkpoint or controlled execution** | How validation is invoked and how results become available to the pipeline. | Invocado programáticamente en `src/validate_gx.py` mediante el Fluent Context de GX 1.X y Checkpoints formales en `gx/checkpoints/*.json`. |
+| **Validation result** | How success, failure, unexpected counts or percentages, and relevant examples are interpreted. | Los objetos de resultado evalúan `res.success`, `res.result['unexpected_count']` y `res.result['unexpected_percent']`. |
+| **Pipeline response** | How severity and policy translate the validation result into continue, warn, stop, or another justified action. | `Critical` $\rightarrow$ Dispara `ValidationError` y `AirflowFailException` (bloquea downstream). `Warning` $\rightarrow$ Registra auditoría en JSON y permite continuar. |
 
 ---
 
@@ -205,18 +225,27 @@ Full profiling evidence generated automatically in [`docs/evidence/profiling_evi
 
 ## 12. Transformation Strategy and Integration Contract
 
-### 12.1 Transformation Decisions
-1. **DANE Truncation:** Truncated from 8 digits to 5 digits (`DDMMM`) to conform to the declared municipal grain.
-2. **Canonical Names:** Municipality name mapped to the modal name for that code; stripped `(CT)` into boolean `es_capital`.
-3. **Weapon Harmonisation:** 4 raw blade weapon categories collapsed into `ARMA BLANCA` (`ARMAS BLANCAS`).
-4. **Demographic Imputation:** Missing gender (0.48%) and age groups (0.20%) imputed as `NO REPORTADO`. **0 victims dropped**.
+### 12.1 Significant Transformations (Table 13)
 
-### 12.2 Integration Contract
-* **Integration Key:** 5-digit DANE code (`codigo_dane_municipio`).
-* **Cardinality:** 1:1 at the municipal grain (API directory aggregated from 1,249 entries to 1,113 municipalities).
-* **Unmatched Primary Records:** 11 non-municipalized areas (corregimientos departamentales en Amazonas, Vaupés, Guainía) and 1 non-specified record receive baseline statutory defaults (`comisarias_instaladas = 0`, `brecha = 1`, `categoria = 'ÁREA NO MUNICIPALIZADA'`).
-* **API-Only Municipalities:** 2 municipalities (Carmen del Darién `27150` and Barrancominas `94343`) with 0 historical police reports added to `dim_geografia` with 0 fact rows, guaranteeing total referential integrity.
-* **Assumptions:** Ley 2126 statutory requirement requires 1 comisaría per 100,000 inhabitants.
+| Transformation ID | Rule or Rationale | Affected Fields | Before and After Behavior | Exception Handling | Analytical or Dimensional Impact |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| **TR-01** | Truncamiento de código DANE a grano municipal declarado. | `CODIGO DANE` $\rightarrow$ `codigo_dane_municipio` | Código de 8 dígitos a centro poblado $\rightarrow$ Primeros 5 dígitos (`DDMMM`). | 00000 asignado a 05001 (Medellín); 52000 a 52999. | Permite agregación exacta al grano municipal y equi-join con API. |
+| **TR-02** | Estandarización de nombres canónicos y bandera de capital. | `MUNICIPIO` $\rightarrow$ `municipio`, `es_capital` | Nombres con variación y sufijo `(CT)` $\rightarrow$ Nombre modal por código DANE; `es_capital = TRUE`. | Si no tiene nombre modal se asigna `NO ESPECIFICADO`. | Elimina 64 duplicados superficiales de nombres y apoya R2. |
+| **TR-03** | Armonización de armas y derivación de letalidad. | `ARMAS MEDIOS` $\rightarrow$ `medio_agresion`, `es_arma_letal` | 4 categorías cortopunzantes $\rightarrow$ `ARMA BLANCA`; flag letal en fuego/blanca. | Armas no catalogadas van a `OTROS`. | Clasificación homogénea para análisis de letalidad en R4, R5 y R7. |
+| **TR-04** | Imputación explícita de variables demográficas. | `GENERO`, `GRUPO ETARIO` | Valores nulos $\rightarrow$ `NO REPORTADO`; derivación `es_menor_de_edad`. | Imputación sin descartar registros (0 víctimas eliminadas). | Preserva 100% de víctimas (1.501.809) para auditoría exacta. |
+
+### 12.2 Integration Contract (Table 13.1)
+
+| Contract Element | Required Decision and Evidence |
+| :--- | :--- |
+| **Integration key or keys** | Código DANE municipal de 5 dígitos (`codigo_dane_municipio`). |
+| **Cardinality** | 1:1 a nivel municipal (directorio de 1.249 comisarías agregado a 1.113 municipios consolidados). |
+| **Preprocessing** | `.str.strip().str.zfill(5)` aplicado a ambas fuentes para evitar pérdida de ceros a la izquierda. |
+| **Temporal alignment** | Datos acumulados DIJIN (2010–2026) integrados con directorio institucional vigente (2026). |
+| **Unmatched records** | 11 áreas no municipalizadas reciben valores por defecto (`comisarias_instaladas=0`, `brecha=1`); 0 víctimas descartadas. |
+| **Duplicate or ambiguous matches** | Múltiples comisarías en un mismo municipio se agrupan en suma agregada en `dim_geografia` y se conservan individualmente en `dim_comisaria`. |
+| **Assumptions** | Requerimiento de Ley 2126 asume escalones de 1 comisaría por cada 100.000 habitantes. |
+| **Limitations** | Los datos reflejan denuncias ante Policía Nacional; no capturan la cifra negra no denunciada. |
 
 ---
 
@@ -230,6 +259,18 @@ Full profiling evidence generated automatically in [`docs/evidence/profiling_evi
 2. **`dim_comisaria` Added (Outrigger):** Contains 1,247 physical comisarías with name, address, telephone, schedule, and category.
    * *Justification:* Supports operational drill-downs and geospatial mapping while keeping `dim_geografia` at the municipal grain.
 3. **`fact_violencia_intrafamiliar` Preserved:** Declared municipal grain `(id_tiempo, id_geografia, id_victima, id_medio)` strictly preserved with unique constraint `uq_fact_grano`.
+
+### 13.2 Dimensional Model Review (Table 12)
+
+| Model Element | Required Review |
+| :--- | :--- |
+| **Business process** | Registro de hechos delictivos de violencia intrafamiliar y oferta de protección institucional de comisarías. |
+| **Fact-table grain** | Una fila por combinación única de evento espacio-temporal y perfil: `(id_tiempo, id_geografia, id_victima, id_medio)`. |
+| **Fact table or tables** | `fact_violencia_intrafamiliar` (701.714 filas; 1.501.809 víctimas). Mantiene el grano municipal intacto. |
+| **Dimensions** | `dim_tiempo` (fechas y calendario denso), `dim_geografia` (enriquecida con indicadores de comisarías), `dim_victima` (género, grupo etario), `dim_medio` (mecanismo y letalidad), `dim_comisaria` (outrigger con directorio físico). |
+| **Measures** | `cantidad_victimas` (suma aditiva), `numero_registros` (conteo de denuncias policiales base). |
+| **Keys and relationships** | PKs surrogadas enteros seriales; FKs indexadas en la Fact table; restricción de unicidad declarada `uq_fact_grano`. |
+| **Requirement coverage** | R1 (tiempo), R2 (geografía), R3 (víctimas/demografía), R4 (mecanismos), R5 (menores y letalidad), R6 (sobrecarga operativa), R7 (déficit legal Ley 2126). |
 
 ---
 
@@ -258,9 +299,9 @@ Executed at **Gate 3 (`validate_prepared`)** prior to Data Warehouse loading:
 ---
 
 ## 16. Airflow DAG Design and Task Interfaces
-
+ 
 * **DAG File:** `dags/etl_violencia_intrafamiliar_dag.py`.
-* **Authoring Interface:** Airflow 3.X TaskFlow API (`@dag`, `@task`).
+* **Authoring Interface:** Apache Airflow 3.1.8 Task SDK (`from airflow.sdk import dag, task`).
 * **Task Interfaces (No Bulk XCom):**
   * Tasks pass small JSON dictionaries containing file paths, checksums, and record counts.
   * Extracted and prepared datasets are persisted on disk (`data/raw/*.csv`, `data/processed/*.parquet`).
@@ -269,15 +310,30 @@ Executed at **Gate 3 (`validate_prepared`)** prior to Data Warehouse loading:
   `extract_api` → `validate_api_raw`  
   Convergence: `transform_and_clean_and_integrate` → `validate_prepared` → `load_dimensional_dw`.
 
+### 16.1 Task Interfaces Contract (Table 17)
+
+| Interface Concern | Required Decision and Evidence |
+| :--- | :--- |
+| **Input contract** | Referencias compactas pasadas por argumentos TaskFlow (rutas en `data/raw/*.csv` o `data/processed/*.parquet`, hashes y conteos esperados). |
+| **Output contract** | Diccionarios ligeros con metadatos del lote (`gate`, `passed`, `critical_failure`, `total_records`, rutas de persistencia). Nunca DataFrames por XCom. |
+| **Batch identity** | Identificado unívocamente mediante la ruta del archivo fuente, timestamp ISO de extracción y hash criptográfico SHA-256 en los manifiestos. |
+| **Failure signal** | Violaciones críticas lanzan `AirflowFailException`, marcando la tarea como `FAILED` con `retries=0` e interrumpiendo aguas abajo. |
+| **Rerun behavior** | Idempotente: recarga atómica protegida por DDL transaccional y restricción `UNIQUE` en el grano (`uq_fact_grano`). Cero duplicados silenciosos. |
+
 ---
 
-## 17. Failure and Retry Policies
+## 17. Failure and Selective Retry Policies
 
-| Failure Class | Example | Task / Scope | Retry Configuration | Rationale |
+Generic DAG-wide retries (`retries=3`) are strictly prohibited by the rubric. Each task defines an explicit, justified policy:
+
+| Failure Class | Example / Root Cause | Task / Scope | Selective Retry Configuration | Engineering Rationale |
 | :--- | :--- | :--- | :--- | :--- |
-| **Transient Operational** | API timeout, network drop | `extract_api` | `retries=3, retry_delay=10s, exponential backoff` | Temporary network issues typically resolve on subsequent attempts. |
-| **Transient Database** | Connection pool contention | `load_dimensional_dw` | `retries=1, retry_delay=5s` | Transient DB socket readiness recovers quickly. |
-| **Deterministic Data Quality** | Missing mandatory column, grain duplicate | `validate_*_raw`, `validate_prepared` | `retries=0` (Fail Fast) | Repeating deterministic violations reproduces the error. Immediate halt prevents pipeline corruption. |
+| **Transient Operational I/O** | Temporary file locks, I/O latency | `extract_primary` | `retries=2, retry_delay=timedelta(minutes=1)` | Temporary disk or file lock contention typically clears within a short wait. |
+| **Transient External API** | SODA API timeouts, HTTP 429 rate limits | `extract_api` | `retries=3, retry_delay=timedelta(minutes=2)` | Remote endpoints and rate limits recover after backoff without human intervention. |
+| **Transient Database Connection** | PostgreSQL connection pool saturation | `load_dimensional_dw` | `retries=2, retry_delay=timedelta(minutes=1)` | Temporary DB connection pool exhaustion resolves once active transactions complete. |
+| **Deterministic Data Quality / Contract** | Missing mandatory columns, invalid DANE lengths | `validate_primary_raw`, `validate_api_raw` | `retries=0` (Fail Fast) | Rerunning validation against unchanged payload reproduces the exact failure. Fail immediately. |
+| **Deterministic Integration Logic** | Business logic, schema mismatch | `transform_and_clean_and_integrate` | `retries=0` (Fail Fast) | Deterministic transformation errors cannot self-heal. Immediate halt preserves pipeline integrity. |
+| **Deterministic Dimensional Quality** | Grain duplicates, orphan FKs, reconciliation delta | `validate_prepared` | `retries=0` (Fail Fast) | Invariant violations require data engineering review before touching the Data Warehouse. |
 
 ---
 
@@ -306,6 +362,18 @@ Executed at **Gate 3 (`validate_prepared`)** prior to Data Warehouse loading:
   3. Downstream tasks `transform_and_clean_and_integrate`, `validate_prepared`, and `load_dimensional_dw` were marked **`BLOCKED (UPSTREAM_FAILED)`** and never executed.
   4. The PostgreSQL Data Warehouse remained completely protected from corrupted data.
 
+### 19.1 Logging and Observability Operational Evidence (Table 19)
+
+| Operational Question | Expected Evidence | Project Implementation / Location |
+| :--- | :--- | :--- |
+| **What ran?** | DAG Run, Task Instance, source or branch, and relevant operation. | Airflow DAG `etl_violencia_intrafamiliar_segunda_entrega` y logs de tarea en TaskFlow. |
+| **When did it run?** | Logical or run date and material start and completion timestamps. | Timestamps ISO registrados en `docs/evidence/*.json` y en Task Instance execution context. |
+| **Which batch or source?** | Batch identifier, extraction timestamp, path, table, or compact source reference. | Manifiestos `primary_source_manifest.json` y `api_source_manifest.json` con hash SHA-256. |
+| **How many records were processed?** | Relevant extracted, accepted, rejected, matched, or loaded counts. | Primaria: 704.551 extraídos / Fact: 701.714 cargados / Víctimas: 1.501.809 reconciliadas al 100%. |
+| **Did validation pass?** | Overall and relevant rule-level GX outcomes. | Reportes de auditoría en `docs/evidence/gx_validation_*_latest.json`. |
+| **Where and why did failure occur?** | Failed task state and actionable log or validation evidence. | Registrado en `test_b_controlled_failure.json` mostrando fallo en `validate_api_raw` por regla `DQ-RAW2-01`. |
+| **What happened next?** | Retry, blocked dependency, warning continuation, recovery, or other policy response. | Downstream dependientes marcadas inmediatamente como `BLOCKED (UPSTREAM_FAILED)`. |
+
 ---
 
 ## 20. Repeatability and Safe-Rerun Strategy (Test C)
@@ -320,21 +388,48 @@ Executed at **Gate 3 (`validate_prepared`)** prior to Data Warehouse loading:
 
 ---
 
-## 21. Dashboard and Analytical Outputs
+## 21. Dashboard and Analytical Outputs (Power BI)
 
-* **Dashboard Technology:** Interactive Web Application (HTML5, Vanilla CSS, Chart.js).
-* **Location:** `dashboard/index.html`.
-* **To launch:** Run `python3 dashboard/server.py` and open [http://localhost:8080](http://localhost:8080).
-* **Analytical Views:**
-  * **Resumen Ejecutivo:** KPIs reconciliados y comparativa general.
-  * **R6: Carga Institucional:** Gráfico de barras horizontales de víctimas por comisaría y ranking de sobrecarga crítica.
-  * **R7: Brecha Ley 2126:** Gráfico de dispersión (burbujas) cruzando déficit de comisarías con menores atacados con armas letales, y resumen por categoría municipal Ley 617.
-  * **Línea Base R1–R5:** Gráficos temporales, departamentales, demográficos y de mecanismos.
-  * **Trazabilidad y Calidad:** Resumen en vivo de las 3 compuertas GX y resultados de pruebas A, B y C.
+La capa de Business Intelligence y visualización analítica se desarrolla en **Microsoft Power BI Desktop**, conectándose de forma directa y en tiempo real al Data Warehouse en PostgreSQL.
+
+### 21.1 Parámetros de Conexión en Power BI Desktop
+
+Para conectar Power BI al Data Warehouse:
+1. En Power BI Desktop, seleccione **Obtener datos (Get Data) $\rightarrow$ Base de datos PostgreSQL**.
+2. Configure los parámetros de conexión:
+   * **Servidor:** `localhost:5432`
+   * **Base de datos:** `etl_dw`
+   * **Modo de conectividad:** `Import` o `DirectQuery`
+3. Ingrese las credenciales de acceso:
+   * **Usuario:** `postgres`
+   * **Contraseña:** `postgres123`
+
+### 21.2 Vistas Analíticas Disponibles para Power BI
+
+El pipeline ETL ejecuta automáticamente el script `sql/bi_views.sql`, exponiendo vistas relacionales ya calculadas y optimizadas para visualización:
+
+| Vista SQL | Requisito Analítico | Descripción y KPIs |
+| :--- | :---: | :--- |
+| `vw_r1_tendencia_anual` | **R1** | Evolución temporal anual (2010–2026), crecimiento interanual YoY y filtro de año completo. |
+| `vw_r2_concentracion_geografica` | **R2** | Ranking departamental y municipal; participación porcentual y concentración en capitales. |
+| `vw_r3_caracterizacion_victimas` | **R3** | Caracterización demográfica por género (mujeres 77.3%), grupo etario y flag de menores de edad. |
+| `vw_r4_mecanismos_letalidad` | **R4** | Distribución de medios y armas; ratio de víctimas por reporte e indicador de letalidad. |
+| `vw_r6_sobrecarga_comisarias` | **R6** | Tasa de carga operativa (víctimas/comisaría) y clasificación de sobrecarga crítica (>2.000). |
+| `vw_r7_prioridad_intervencion` | **R7** | Matriz de priorización (Déficit Ley 2126 vs. ataques letales a menores y violencia de género). |
+
+### 21.3 Business Intelligence Analytical Product (Table 21)
+
+| Requirement | DW Element or Query | KPI or Visualization | Integration Value Demonstrated |
+| :---: | :--- | :--- | :--- |
+| **R6** | `dim_geografia.comisarias_instaladas`, `fact.cantidad_victimas` | Tasa de víctimas por comisaría instalada (Gráfico de barras de sobrecarga crítica). | Revela saturación extrema oculta en ciudades intermedias (Cúcuta con 20.389 víctimas por comisaría). |
+| **R7** | `dim_geografia.brecha_comisarias`, `dim_geografia.categoria_municipio`, filtros R3 y R5 | Matriz de Intervención Prioritaria: Déficit legal (Ley 2126) vs Agresiones letales a menores (Gráfico de dispersión y priorización). | Identifica y jerarquiza los 114 municipios en incumplimiento legal donde además hay riesgo letal contra niños y niñas. |
 
 ---
 
-## 22. Requirement-to-KPI and End-to-End Traceability Matrix
+## 22. Requirement-to-KPI and End-to-End Traceability Matrix (Table 6)
+
+**Required reasoning chain:**  
+`Analytical Requirement → Required Data → Source → Profiling Evidence → Quality Risk → Quality Dimension → Quality Rule → Metric and Threshold → Severity → GX Expectation → Validation Result → Pipeline Action → Transformation and Integration → DW Element → KPI or Visualization`
 
 | Requirement | Primary Attribute | API Attribute | Profiling Finding | Quality Rule | GX Check | Transformation / Integration | DW Target | Final KPI / Visualisation |
 | :---: | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -351,30 +446,84 @@ Executed at **Gate 3 (`validate_prepared`)** prior to Data Warehouse loading:
 ## 23. Setup and Execution Instructions
 
 ### 23.1 Prerequisites
-* Python 3.10+
-* Docker & Docker Compose (or local PostgreSQL 16)
+* **Docker & Docker Compose** (Docker Desktop activo).
+* **Python 3.10+** y gestor `pip`.
 
-### 23.2 Step-by-Step Run
+### 23.2 Step-by-Step Execution
+
+#### 1. Configure Environment and Infrastructure
+* **En Windows (PowerShell):**
+  ```powershell
+  copy .env.example .env
+  docker compose up -d
+  ```
+* **En Linux / macOS:**
+  ```bash
+  cp .env.example .env
+  docker compose up -d
+  ```
+
+#### 2. Virtual Environment and Python Dependencies
+* **En Windows (PowerShell):**
+  ```powershell
+  python -m venv .venv
+  .\.venv\Scripts\Activate.ps1
+  pip install -r requirements.txt
+  ```
+* **En Linux / macOS:**
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  pip install -r requirements.txt
+  ```
+
+#### 3. Execute Pipeline and Reliability Tests (Two Options)
+
+* **Option A — Automated CLI Runner (Recommended for fast grading):**
+  Ejecuta consecutivamente **Test A**, **Test B** y **Test C**, validando compuertas Great Expectations y generando las evidencias en `docs/evidence/`:
+  ```powershell
+  # En Windows:
+  python src/run_pipeline.py
+
+  # En Linux / macOS:
+  python3 src/run_pipeline.py
+  ```
+
+* **Option B — Apache Airflow 3.1.8 Web UI (Interactive Orchestration):**
+  1. Ingrese desde su navegador a: **`http://localhost:8080`**
+  2. Inicie sesión: **Username:** `admin` | **Password:** `admin`
+  3. Seleccione el DAG: `etl_violencia_intrafamiliar_segunda_entrega`.
+  4. Haga clic en **Trigger (▶️) $\rightarrow$ Opciones Avanzadas** y seleccione en el menú `test_mode`:
+     - **`TEST_A_SUCCESSFUL_RUN`**: Ejecución completa exitosa de punta a punta (todas las tareas en **VERDE**).
+     - **`TEST_B_CONTROLLED_FAILURE`**: Simulación de falla crítica en fuente primaria (Compuerta 1 en **ROJO** y downstream bloqueado en **NARANJA**).
+     - **`TEST_C_SAFE_RERUN`**: Re-ejecución sobre la base de datos existente demostrando **idempotencia total** (0 registros y 0 víctimas duplicadas).
+
+#### 4. Verify Data Warehouse with Analytical Queries
 ```bash
-# 1. Clone repository and navigate to folder
-cd Proyecto_etl_C2
+# Ejecutar todas las consultas analíticas de R1 a R7
+docker compose exec postgres_dw psql -U postgres -d etl_dw -f /sql/analytical_queries.sql
 
-# 2. Configure environment
-cp .env.example .env
-
-# 3. Start PostgreSQL Data Warehouse container
-docker compose up -d
-
-# 4. Install python dependencies
-python3 -m pip install -r requirements.txt
-
-# 5. Run full pipeline and all reliability tests (A, B, C)
-python3 src/run_pipeline.py
-
-# 6. Launch interactive BI dashboard
-python3 dashboard/server.py
-# Open browser at http://localhost:8080
+# Consulta rápida de conciliación (Esperado: 701.714 hechos | 1.501.809 víctimas | 704.551 reportes)
+docker compose exec postgres_dw psql -U postgres -d etl_dw -c "SELECT COUNT(*) AS total_hechos, SUM(cantidad_victimas) AS total_victimas, SUM(numero_registros) AS total_reportes FROM fact_violencia_intrafamiliar;"
 ```
+
+#### 5. Solución de Problemas Frecuentes (Troubleshooting)
+* **Puerto 5432 u 8080 ocupado:** Modifique `DB_PORT=5433` en `.env` y `docker-compose.yaml`.
+* **Reinicio limpio de contenedores:** Ejecute `docker compose down -v` y luego `docker compose up -d`.
+* **Conectividad con la API:** Si la red externa falla, el sistema utiliza automáticamente la caché local de `data/raw/api_comisarias_raw.json` para garantizar reproducibilidad sin cortes.
+
+### 23.3 Quick Reference Table
+
+| Action | Windows (PowerShell / CMD) | Linux / macOS |
+| :--- | :--- | :--- |
+| **1. Environment** | `copy .env.example .env` | `cp .env.example .env` |
+| **2. Infrastructure** | `docker compose up -d` | `docker compose up -d` |
+| **3. Virtual Env** | `python -m venv .venv` y `.\.venv\Scripts\Activate.ps1` | `python3 -m venv .venv` y `source .venv/bin/activate` |
+| **4. Dependencies** | `pip install -r requirements.txt` | `pip install -r requirements.txt` |
+| **5. Run Pipeline** | `python src/run_pipeline.py` | `python3 src/run_pipeline.py` |
+| **6. Airflow UI** | Abrir `http://localhost:8080` (`admin`/`admin`) | Abrir `http://localhost:8080` (`admin`/`admin`) |
+| **7. Verify Queries** | `docker compose exec postgres_dw psql -U postgres -d etl_dw -f /sql/analytical_queries.sql` | `docker compose exec postgres_dw psql -U postgres -d etl_dw -f /sql/analytical_queries.sql` |
+| **8. Stop Services** | `docker compose down` | `docker compose down` |
 
 ---
 
@@ -398,4 +547,25 @@ python3 dashboard/server.py
 | **Michael Macowli Cardona Rodríguez** | Formulation of R6 and R7; Apache Airflow DAG design; integration contract; repository architecture and end-to-end orchestration. |
 | **Sebastián Manrique Mejía** | SODA REST API extraction; cross-source profiling; Great Expectations validation suites (Gate 1, Gate 2, Gate 3). |
 | **David Hernández Paz** | Dimensional model refinement (`dim_geografia` enrichment, `dim_comisaria`); PostgreSQL 16 DDL; bulk load and automated reconciliation. |
-| **Sebastián Torres Pantoja** | Business Intelligence semantic layer; analytical SQL queries for R1–R7; interactive web dashboard development and reliability testing. |
+| **Sebastián Torres Pantoja** | Business Intelligence semantic layer; analytical SQL queries for R1–R7; Power BI dashboard integration and reliability testing. |
+
+---
+
+## 26. Minimum Evidence Set and Submission Verification (Rubric Sections 25 & 29)
+
+- [x] **R1–R5 status and refined analytical requirements** (Sección 3 documentada con justificación analítica).
+- [x] **Completed R6–R7 integrated-requirements matrix** (Sección 4 con atributos, claves, métricas y detalle).
+- [x] **Architecture diagram** (Sección 7 y archivo generado en `docs/architecture.png`).
+- [x] **Profiling evidence for both sources** (Sección 8 y evidencia JSON en `docs/evidence/profiling_evidence.json`).
+- [x] **Quality risks and completed quality-rule table** (Sección 9 con las 14 reglas documentadas).
+- [x] **Programmatic API extraction evidence** (Sección 5.2, código en `src/extract_api.py` y manifiesto en `data/raw/api_source_manifest.json`).
+- [x] **Great Expectations raw-validation evidence for both branches** (Sección 10, suites en `gx/expectations/` y resultados en `docs/evidence/`).
+- [x] **Transformation and integration evidence, including integration contract** (Sección 12 con Tabla 13 y Tabla 13.1).
+- [x] **Refined dimensional model and Data Warehouse scripts** (Sección 13, DDL en `sql/create_dw.sql` y diagrama en `docs/star_schema.png`).
+- [x] **Prepared-data validation evidence** (Sección 14 y `docs/evidence/gx_validation_prepared_latest.json`).
+- [x] **Airflow DAG and successful-run evidence** (Sección 16, DAG en `dags/etl_violencia_intrafamiliar_dag.py` y evidencia de Test A).
+- [x] **Controlled-failure evidence and failed-task logs** (Sección 19 y `docs/evidence/test_b_controlled_failure.json`).
+- [x] **Retry-policy evidence or justified no-retry decisions** (Sección 17 con política selectiva y justificación técnica).
+- [x] **Safe-rerun evidence and before-and-after comparison** (Sección 20 y `docs/evidence/test_c_safe_rerun.json`).
+- [x] **Dashboard evidence and requirement-to-KPI traceability** (Sección 21 con vistas semánticas en `sql/bi_views.sql`, capa analítica en Power BI y Tabla 21).
+- [x] **Final end-to-end traceability matrix** (Sección 22 con cadena de razonamiento completa).

@@ -1,0 +1,129 @@
+# =============================================================================
+# Great Expectations 1.X Configuration Manifest
+# Project: Proyecto_etl_c2 - Violencia Intrafamiliar & MinJusticia Comisarías
+# =============================================================================
+
+gx_version: "1.24.0"
+execution_engine: "PandasExecutionEngine"
+
+stores:
+  expectations_store:
+    class_name: ExpectationsStore
+    base_directory: expectations/
+    description: "Declarative JSON Expectation Suites for Gates 1, 2, and 3"
+
+  validations_store:
+    class_name: ValidationsStore
+    base_directory: ../docs/evidence/
+    description: "Audit JSON validation execution evidence and latest pointers"
+
+  checkpoint_store:
+    class_name: CheckpointStore
+    base_directory: checkpoints/
+    description: "Reusable automated checkpoint workflows"
+
+validation_definitions_store:
+  base_directory: validation_definitions/
+
+data_docs_sites:
+  local_site:
+    class_name: SiteBuilder
+    base_directory: ../docs/evidence/data_docs/
+
+gates:
+  gate_1:
+    name: "validate_primary_raw"
+    description: "Gate 1: Automated validation of raw primary domestic violence data (DIJIN)"
+    suite_file: "expectations/primary_raw_suite.json"
+    checkpoint_file: "checkpoints/checkpoint_primary_raw.json"
+    validation_definition: "validation_definitions/val_primary_raw.json"
+    severity_policy: "fail_fast_on_critical"
+    rules:
+      - rule_id: "DQ-RAW1-01"
+        severity: "Critical"
+        dimension: "Completeness"
+        requirement: "R1-R5"
+        description: "Mandatory columns must exist in raw extract."
+      - rule_id: "DQ-RAW1-02"
+        severity: "Critical"
+        dimension: "Validity & Format"
+        requirement: "R1"
+        description: "Incident date matches DD/MM/YYYY format."
+      - rule_id: "DQ-RAW1-03"
+        severity: "Critical"
+        dimension: "Format & Length"
+        requirement: "R2, R5"
+        description: "DANE code length must be 8 characters at raw level."
+      - rule_id: "DQ-RAW1-04"
+        severity: "Critical"
+        dimension: "Validity & Range"
+        requirement: "R1-R5"
+        description: "Measure CANTIDAD must be a positive integer >= 1."
+      - rule_id: "DQ-RAW1-05"
+        severity: "Warning"
+        dimension: "Completeness"
+        requirement: "R3"
+        description: "Null gender records must not exceed 1%."
+
+  gate_2:
+    name: "validate_api_raw"
+    description: "Gate 2: Automated validation of raw API payload (MinJusticia Comisarías)"
+    suite_file: "expectations/api_raw_suite.json"
+    checkpoint_file: "checkpoints/checkpoint_api_raw.json"
+    validation_definition: "validation_definitions/val_api_raw.json"
+    severity_policy: "fail_fast_on_critical"
+    rules:
+      - rule_id: "DQ-RAW2-01"
+        severity: "Critical"
+        dimension: "Completeness"
+        requirement: "R6, R7"
+        description: "Mandatory API schema attributes must exist."
+      - rule_id: "DQ-RAW2-02"
+        severity: "Critical"
+        dimension: "Validity"
+        requirement: "R6, R7"
+        description: "API DANE code length between 4 and 5 characters."
+      - rule_id: "DQ-RAW2-03"
+        severity: "Warning"
+        dimension: "Domain Validity"
+        requirement: "R7"
+        description: "Municipal category belongs to statutory set (1-6, ESP)."
+      - rule_id: "DQ-RAW2-04"
+        severity: "Critical"
+        dimension: "Validity & Range"
+        requirement: "R6, R7"
+        description: "Verified comisarías count must be non-negative."
+
+  gate_3:
+    name: "validate_prepared"
+    description: "Gate 3: Automated validation of prepared star schema prior to DW load"
+    suite_file: "expectations/prepared_data_suite.json"
+    checkpoint_file: "checkpoints/checkpoint_prepared_data.json"
+    validation_definition: "validation_definitions/val_prepared_data.json"
+    severity_policy: "fail_fast_on_critical"
+    rules:
+      - rule_id: "DQ-PREP-01"
+        severity: "Critical"
+        dimension: "Uniqueness"
+        requirement: "R1-R7"
+        description: "Fact table uniqueness at declared municipal grain."
+      - rule_id: "DQ-PREP-02"
+        severity: "Critical"
+        dimension: "Completeness"
+        requirement: "R1-R7"
+        description: "Foreign keys must not be null in fact table."
+      - rule_id: "DQ-PREP-03"
+        severity: "Critical"
+        dimension: "Consistency & Referential Integrity"
+        requirement: "R1-R7"
+        description: "All fact foreign keys exist in dimension primary keys."
+      - rule_id: "DQ-PREP-04"
+        severity: "Critical"
+        dimension: "Validity & Range"
+        requirement: "R6, R7"
+        description: "Enriched dim_geografia comisarias_instaladas non-negative."
+      - rule_id: "DQ-PREP-05"
+        severity: "Critical"
+        dimension: "Accuracy & Reconciliation"
+        requirement: "All"
+        description: "Loaded victim count and record count reconcile exactly with extract manifests."

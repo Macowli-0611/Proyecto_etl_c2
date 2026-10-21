@@ -1,0 +1,99 @@
+{
+  "name": "api_raw_suite",
+  "description": "Gate 2: Validación cruda de API (MinJusticia Comisarías de Familia - SODA REST API)",
+  "meta": {
+    "great_expectations_version": "1.24.0",
+    "gate": "validate_api_raw",
+    "suite_name": "api_raw_suite",
+    "source": "Ministerio de Justicia y del Derecho / datos.gov.co",
+    "target_table": "raw_api_comisarias_familia",
+    "academic_requirements": "R6, R7"
+  },
+  "expectations": [
+    {
+      "type": "expect_table_columns_to_match_set",
+      "kwargs": {
+        "column_set": [
+          "c_digo_dane_municipio",
+          "categoria_municipio",
+          "existencia_de_comisarias",
+          "comisarias_ley_2126_100_000"
+        ],
+        "exact_match": false
+      },
+      "meta": {
+        "rule_id": "DQ-RAW2-01",
+        "severity": "Critical",
+        "requirement": "R6, R7",
+        "dimension": "Completeness",
+        "metric": "Missing mandatory columns == 0",
+        "description": "Mandatory API schema attributes must exist in incoming payload."
+      },
+      "notes": "DQ-RAW2-01: Critical. Mandatory API schema attributes must exist."
+    },
+    {
+      "type": "expect_column_value_lengths_to_be_between",
+      "kwargs": {
+        "column": "c_digo_dane_municipio",
+        "min_value": 4,
+        "max_value": 5,
+        "mostly": 0.99
+      },
+      "meta": {
+        "rule_id": "DQ-RAW2-02",
+        "severity": "Critical",
+        "requirement": "R6, R7",
+        "dimension": "Validity",
+        "metric": "DANE length between 4 and 5 characters for >= 99%",
+        "description": "API DANE municipal code length must be between 4 and 5 characters."
+      },
+      "notes": "DQ-RAW2-02: Critical. API DANE code length must be between 4 and 5 characters."
+    },
+    {
+      "type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "existencia_numeric",
+        "min_value": 0,
+        "mostly": 0.90
+      },
+      "meta": {
+        "rule_id": "DQ-RAW2-04",
+        "severity": "Critical",
+        "requirement": "R6, R7",
+        "dimension": "Validity & Range",
+        "metric": "Existing comisarías count >= 0 for >= 90%",
+        "description": "Verified comisarías count must be non-negative."
+      },
+      "notes": "DQ-RAW2-04: Critical. Existing comisarías count must be non-negative."
+    },
+    {
+      "type": "expect_column_values_to_be_in_set",
+      "kwargs": {
+        "column": "categoria_municipio",
+        "value_set": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "ESP",
+          "Especial",
+          "None",
+          null,
+          ""
+        ],
+        "mostly": 0.95
+      },
+      "meta": {
+        "rule_id": "DQ-RAW2-03",
+        "severity": "Warning",
+        "requirement": "R7",
+        "dimension": "Domain Validity",
+        "metric": "Unexpected municipal category values <= 2%",
+        "description": "Municipal statutory category belongs to statutory set (1–6, ESP, Especial)."
+      },
+      "notes": "DQ-RAW2-03: Warning. Municipal category domain validity."
+    }
+  ]
+}

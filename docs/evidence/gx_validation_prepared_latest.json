@@ -1,6 +1,7 @@
 {
   "gate": "validate_prepared",
-  "timestamp": "2026-10-20T18:53:55.056599",
+  "suite_name": "prepared_data_suite",
+  "timestamp": "2026-10-21T04:39:28.513934",
   "total_fact_rows": 701714,
   "total_victims": 1501809,
   "overall_success": true,
@@ -9,6 +10,7 @@
     {
       "rule_id": "DQ-PREP-01",
       "dimension": "Uniqueness",
+      "requirement": "R1–R7",
       "description": "Fact table uniqueness at declared municipal grain",
       "expected": "0 duplicates",
       "actual": "0 duplicates",
@@ -18,6 +20,7 @@
     {
       "rule_id": "DQ-PREP-02",
       "dimension": "Completeness",
+      "requirement": "R1–R7",
       "description": "Foreign keys not null in fact table",
       "expected": "0 nulls",
       "actual": {
@@ -32,6 +35,7 @@
     {
       "rule_id": "DQ-PREP-03",
       "dimension": "Consistency",
+      "requirement": "R1–R7",
       "description": "Referential integrity (fact foreign keys must exist in dimensions)",
       "expected": "0 orphans",
       "actual": {},
@@ -41,6 +45,7 @@
     {
       "rule_id": "DQ-PREP-05",
       "dimension": "Accuracy & Reconciliation",
+      "requirement": "All",
       "description": "Reconciliation of measures between source extract and fact table",
       "expected": "victims=1501809, records=704551",
       "actual": "victims=1501809, records=704551",
@@ -50,6 +55,7 @@
     {
       "rule_id": "DQ-PREP-04",
       "dimension": "Validity",
+      "requirement": "R6, R7",
       "description": "Enriched dim_geografia comisarias_instaladas non-negative",
       "expected": ">= 0 for all rows",
       "actual": "min=0",

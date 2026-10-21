@@ -1,0 +1,20 @@
+{
+  "name": "checkpoint_primary_raw",
+  "description": "Checkpoint for Gate 1: Evaluates raw primary domestic violence data against primary_raw_suite",
+  "meta": {
+    "gate": "validate_primary_raw",
+    "suite": "primary_raw_suite"
+  },
+  "validation_definitions": [
+    {
+      "name": "val_primary_raw"
+    }
+  ],
+  "actions": [
+    {
+      "name": "store_validation_result",
+      "type": "StoreValidationResultAction",
+      "target_store_name": "validations_store"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "name": "checkpoint_prepared_data",
+  "description": "Checkpoint for Gate 3: Evaluates prepared star schema tables against prepared_data_suite",
+  "meta": {
+    "gate": "validate_prepared",
+    "suite": "prepared_data_suite"
+  },
+  "validation_definitions": [
+    {
+      "name": "val_prepared_data"
+    }
+  ],
+  "actions": [
+    {
+      "name": "store_validation_result",
+      "type": "StoreValidationResultAction",
+      "target_store_name": "validations_store"
+    }
+  ]
+}

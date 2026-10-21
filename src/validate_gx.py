@@ -1,13 +1,19 @@
 """Automated Data Quality Validation Module with Great Expectations 1.X.
 
-Implements three explicit validation gates:
-  1. validate_primary_raw: Raw Primary Branch (DIJIN Violence Reports)
-  2. validate_api_raw: Raw API Branch (Comisarías de Familia)
-  3. validate_prepared: Transformed & Integrated Prepared Data (pre-DW load)
+Implements three explicit validation gates required by the course rubric:
+  1. validate_primary_raw: Raw Primary Branch (DIJIN Domestic Violence Reports) - Gate 1
+  2. validate_api_raw: Raw API Branch (MinJusticia Comisarías de Familia) - Gate 2
+  3. validate_prepared_data: Transformed & Integrated Prepared Data (pre-DW load) - Gate 3
 
 Each check is traceable to a documented DQ Rule ID, dimension, metric, threshold, and severity.
-Critical severity violations halt execution and block downstream processing.
-Warning and Informational severity checks record findings and allow pipeline continuation.
+Expectation Suites are maintained and synchronized from the declarative repository:
+  - gx/expectations/primary_raw_suite.json
+  - gx/expectations/api_raw_suite.json
+  - gx/expectations/prepared_data_suite.json
+
+Severity Policy:
+  - Critical severity violations halt execution immediately and block downstream processing.
+  - Warning severity checks record audit findings in docs/evidence/ and allow pipeline continuation.
 """
 
 import json
@@ -27,7 +33,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger("ValidateGX")
 
-EVIDENCE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "docs", "evidence")
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+GX_DIR = os.path.join(PROJECT_ROOT, "gx")
+EXPECTATIONS_DIR = os.path.join(GX_DIR, "expectations")
+EVIDENCE_DIR = os.path.join(PROJECT_ROOT, "docs", "evidence")
 
 
 class ValidationError(Exception):
@@ -35,13 +44,24 @@ class ValidationError(Exception):
     pass
 
 
-def _save_validation_result(gate_name: str, result_dict: Dict[str, Any]) -> str:
-    """Saves validation execution results as JSON for audit and observability."""
-    os.makedirs(EVIDENCE_DIR, exist_ok=True)
-    filename = f"gx_validation_{gate_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
-    filepath = os.path.join(EVIDENCE_DIR, filename)
+def load_expectation_suite_json(suite_name: str) -> Dict[str, Any]:
+    """Loads a declarative expectation suite definition from gx/expectations/."""
+    filename = f"{suite_name}.json" if not suite_name.endswith(".json") else suite_name
+    filepath = os.path.join(EXPECTATIONS_DIR, filename)
+    if os.path.exists(filepath):
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            logger.warning("Could not read expectation suite from %s: %s", filepath, e)
+    return {}
 
-    # Also maintain a latest file for easy referencing
+
+def _save_validation_result(gate_name: str, result_dict: Dict[str, Any]) -> str:
+    """Saves validation execution results as JSON for audit, observability, and compliance."""
+    os.makedirs(EVIDENCE_DIR, exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filepath = os.path.join(EVIDENCE_DIR, f"gx_validation_{gate_name}_{timestamp}.json")
     latest_path = os.path.join(EVIDENCE_DIR, f"gx_validation_{gate_name}_latest.json")
 
     with open(filepath, "w", encoding="utf-8") as f:
@@ -56,7 +76,7 @@ def _save_validation_result(gate_name: str, result_dict: Dict[str, Any]) -> str:
 def validate_primary_raw(df_raw: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
     """Gate 1: Validates raw primary source before entering transformation.
 
-    Rules:
+    Rules defined in gx/expectations/primary_raw_suite.json:
       - DQ-RAW1-01 (Critical): Mandatory schema columns exist.
       - DQ-RAW1-02 (Critical): FECHA HECHO format DD/MM/YYYY.
       - DQ-RAW1-03 (Critical): CODIGO DANE length (8 characters).
@@ -64,20 +84,28 @@ def validate_primary_raw(df_raw: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
       - DQ-RAW1-05 (Warning): GENERO missingness <= 1%.
     """
     logger.info("--- GATE 1: Validating Raw Primary Source (%d rows) ---", len(df_raw))
+    suite_json = load_expectation_suite_json("primary_raw_suite")
+
     context = gx.get_context(mode="ephemeral")
     source_name = f"pandas_primary_raw_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}"
     data_source = context.data_sources.add_pandas(source_name)
     data_asset = data_source.add_dataframe_asset("primary_raw_asset")
     batch_def = data_asset.add_batch_definition_whole_dataframe("batch_def_primary")
 
-    suite_name = "suite_primary_raw"
+    suite_name = "primary_raw_suite"
     suite = context.suites.add(gx.ExpectationSuite(name=suite_name))
 
-    # DQ-RAW1-01: Mandatory columns
+    # Required columns
     required_cols = [
         "DEPARTAMENTO", "MUNICIPIO", "CODIGO DANE", "ARMAS MEDIOS",
         "FECHA HECHO", "GENERO", "GRUPO ETARIO", "CANTIDAD"
     ]
+    if suite_json and "expectations" in suite_json:
+        for exp in suite_json["expectations"]:
+            if exp.get("type") == "expect_table_columns_to_match_set":
+                required_cols = exp.get("kwargs", {}).get("column_set", required_cols)
+
+    # DQ-RAW1-01: Mandatory columns
     suite.add_expectation(
         gxe.ExpectTableColumnsToMatchSet(
             column_set=required_cols,
@@ -86,38 +114,40 @@ def validate_primary_raw(df_raw: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
         )
     )
 
-    # DQ-RAW1-03: CODIGO DANE length
-    suite.add_expectation(
-        gxe.ExpectColumnValueLengthsToBeBetween(
-            column="CODIGO DANE",
-            min_value=8,
-            max_value=8,
-            mostly=0.9999,
-            notes="DQ-RAW1-03: Critical. DANE code must be 8-digit string."
-        )
-    )
-
-    # DQ-RAW1-04: CANTIDAD positive integer
-    # Convert measure temporarily to numeric for range expectation
+    # Prepare DataFrame copy with numeric conversion for CANTIDAD
     df_eval = df_raw.copy()
-    df_eval["CANTIDAD_NUMERIC"] = pd.to_numeric(df_eval["CANTIDAD"], errors="coerce")
-
-    suite.add_expectation(
-        gxe.ExpectColumnValuesToBeBetween(
-            column="CANTIDAD_NUMERIC",
-            min_value=1,
-            notes="DQ-RAW1-04: Critical. Measure CANTIDAD must be >= 1."
+    if "CANTIDAD" in df_eval.columns:
+        df_eval["CANTIDAD_NUMERIC"] = pd.to_numeric(df_eval["CANTIDAD"], errors="coerce")
+        # DQ-RAW1-04: CANTIDAD positive integer
+        suite.add_expectation(
+            gxe.ExpectColumnValuesToBeBetween(
+                column="CANTIDAD_NUMERIC",
+                min_value=1,
+                notes="DQ-RAW1-04: Critical. Measure CANTIDAD must be >= 1."
+            )
         )
-    )
+
+    # DQ-RAW1-03: CODIGO DANE length (8 characters at centro poblado level)
+    if "CODIGO DANE" in df_eval.columns:
+        suite.add_expectation(
+            gxe.ExpectColumnValueLengthsToBeBetween(
+                column="CODIGO DANE",
+                min_value=8,
+                max_value=8,
+                mostly=0.9999,
+                notes="DQ-RAW1-03: Critical. DANE code must be 8-digit string."
+            )
+        )
 
     # DQ-RAW1-05: GENERO null threshold <= 1%
-    suite.add_expectation(
-        gxe.ExpectColumnValuesToNotBeNull(
-            column="GENERO",
-            mostly=0.99,
-            notes="DQ-RAW1-05: Warning. Null gender must not exceed 1%."
+    if "GENERO" in df_eval.columns:
+        suite.add_expectation(
+            gxe.ExpectColumnValuesToNotBeNull(
+                column="GENERO",
+                mostly=0.99,
+                notes="DQ-RAW1-05: Warning. Null gender must not exceed 1%."
+            )
         )
-    )
 
     val_def = context.validation_definitions.add(
         gx.ValidationDefinition(name="val_primary_raw", data=batch_def, suite=suite)
@@ -150,6 +180,7 @@ def validate_primary_raw(df_raw: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
 
     audit_payload = {
         "gate": "validate_primary_raw",
+        "suite_name": "primary_raw_suite",
         "timestamp": datetime.now().isoformat(),
         "total_records": len(df_raw),
         "overall_success": overall_success,
@@ -160,7 +191,7 @@ def validate_primary_raw(df_raw: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
 
     if critical_failure:
         raise ValidationError(
-            f"Gate 1 (Primary Raw Validation) failed with Critical severity. Execution halted to protect downstream tasks."
+            "Gate 1 (Primary Raw Validation) failed with Critical severity. Execution halted to protect downstream tasks."
         )
 
     logger.info("Gate 1 (Primary Raw) passed successfully! All critical rules satisfied.")
@@ -170,27 +201,34 @@ def validate_primary_raw(df_raw: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
 def validate_api_raw(df_api: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
     """Gate 2: Validates raw API source before entering transformation.
 
-    Rules:
+    Rules defined in gx/expectations/api_raw_suite.json:
       - DQ-RAW2-01 (Critical): Mandatory API fields present.
       - DQ-RAW2-02 (Critical): c_digo_dane_municipio length 4-5 characters.
       - DQ-RAW2-03 (Warning): categoria_municipio in statutory set {1,2,3,4,5,6,ESP}.
       - DQ-RAW2-04 (Critical): existencia_de_comisarias >= 0.
     """
     logger.info("--- GATE 2: Validating Raw API Source (%d rows) ---", len(df_api))
+    suite_json = load_expectation_suite_json("api_raw_suite")
+
     context = gx.get_context(mode="ephemeral")
     source_name = f"pandas_api_raw_{datetime.now().strftime('%Y%m%d_%H%M%S%f')}"
     data_source = context.data_sources.add_pandas(source_name)
     data_asset = data_source.add_dataframe_asset("api_raw_asset")
     batch_def = data_asset.add_batch_definition_whole_dataframe("batch_def_api")
 
-    suite_name = "suite_api_raw"
+    suite_name = "api_raw_suite"
     suite = context.suites.add(gx.ExpectationSuite(name=suite_name))
 
-    # DQ-RAW2-01: Mandatory columns
     required_cols = [
         "c_digo_dane_municipio", "categoria_municipio",
         "existencia_de_comisarias", "comisarias_ley_2126_100_000"
     ]
+    if suite_json and "expectations" in suite_json:
+        for exp in suite_json["expectations"]:
+            if exp.get("type") == "expect_table_columns_to_match_set":
+                required_cols = exp.get("kwargs", {}).get("column_set", required_cols)
+
+    # DQ-RAW2-01: Mandatory columns
     suite.add_expectation(
         gxe.ExpectTableColumnsToMatchSet(
             column_set=required_cols,
@@ -200,21 +238,21 @@ def validate_api_raw(df_api: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
     )
 
     # DQ-RAW2-02: DANE length 4 to 5
-    suite.add_expectation(
-        gxe.ExpectColumnValueLengthsToBeBetween(
-            column="c_digo_dane_municipio",
-            min_value=4,
-            max_value=5,
-            mostly=0.99,
-            notes="DQ-RAW2-02: Critical. API DANE code length must be between 4 and 5 characters."
+    if "c_digo_dane_municipio" in df_api.columns:
+        suite.add_expectation(
+            gxe.ExpectColumnValueLengthsToBeBetween(
+                column="c_digo_dane_municipio",
+                min_value=4,
+                max_value=5,
+                mostly=0.99,
+                notes="DQ-RAW2-02: Critical. API DANE code length must be between 4 and 5 characters."
+            )
         )
-    )
 
-    # Prepare numeric copy for numerical checks if column exists
+    # DQ-RAW2-04: Non-negative comisarías count
     df_eval = df_api.copy()
     if "existencia_de_comisarias" in df_eval.columns:
         df_eval["existencia_numeric"] = pd.to_numeric(df_eval["existencia_de_comisarias"], errors="coerce")
-        # DQ-RAW2-04: Non-negative comisarías count
         suite.add_expectation(
             gxe.ExpectColumnValuesToBeBetween(
                 column="existencia_numeric",
@@ -266,6 +304,7 @@ def validate_api_raw(df_api: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
 
     audit_payload = {
         "gate": "validate_api_raw",
+        "suite_name": "api_raw_suite",
         "timestamp": datetime.now().isoformat(),
         "total_records": len(df_api),
         "overall_success": overall_success,
@@ -276,7 +315,7 @@ def validate_api_raw(df_api: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
 
     if critical_failure:
         raise ValidationError(
-            f"Gate 2 (API Raw Validation) failed with Critical severity. Execution halted to protect downstream tasks."
+            "Gate 2 (API Raw Validation) failed with Critical severity. Execution halted to protect downstream tasks."
         )
 
     logger.info("Gate 2 (API Raw) passed successfully! All critical rules satisfied.")
@@ -286,14 +325,16 @@ def validate_api_raw(df_api: pd.DataFrame) -> Tuple[bool, Dict[str, Any]]:
 def validate_prepared_data(tables: Dict[str, pd.DataFrame], expected_totals: Dict[str, int]) -> Tuple[bool, Dict[str, Any]]:
     """Gate 3: Validates transformed and integrated data before loading into the Data Warehouse.
 
-    Rules:
+    Rules defined in gx/expectations/prepared_data_suite.json:
       - DQ-PREP-01 (Critical): Fact table declared grain uniqueness (id_tiempo, id_geografia, id_victima, id_medio).
       - DQ-PREP-02 (Critical): Zero null foreign keys in fact table.
-      - DQ-PREP-03 (Critical): Installed comisarías >= 0 in dim_geografia.
-      - DQ-PREP-04 (Warning): Integration cross-source match rate >= 98%.
+      - DQ-PREP-03 (Critical): Referential integrity (fact foreign keys must exist in dimensions).
+      - DQ-PREP-04 (Critical): Installed comisarías >= 0 in dim_geografia.
       - DQ-PREP-05 (Critical): Total victim count reconciliation with raw source.
     """
     logger.info("--- GATE 3: Validating Transformed & Integrated Prepared Data ---")
+    suite_json = load_expectation_suite_json("prepared_data_suite")
+
     fact = tables["fact_violencia_intrafamiliar"]
     dim_geo = tables["dim_geografia"]
     dim_tiempo = tables["dim_tiempo"]
@@ -310,6 +351,7 @@ def validate_prepared_data(tables: Dict[str, pd.DataFrame], expected_totals: Dic
     results_summary.append({
         "rule_id": "DQ-PREP-01",
         "dimension": "Uniqueness",
+        "requirement": "R1–R7",
         "description": "Fact table uniqueness at declared municipal grain",
         "expected": "0 duplicates",
         "actual": f"{grain_duplicates} duplicates",
@@ -327,6 +369,7 @@ def validate_prepared_data(tables: Dict[str, pd.DataFrame], expected_totals: Dic
     results_summary.append({
         "rule_id": "DQ-PREP-02",
         "dimension": "Completeness",
+        "requirement": "R1–R7",
         "description": "Foreign keys not null in fact table",
         "expected": "0 nulls",
         "actual": fk_nulls,
@@ -337,7 +380,7 @@ def validate_prepared_data(tables: Dict[str, pd.DataFrame], expected_totals: Dic
         critical_failure = True
         logger.error("CRITICAL: Found null foreign keys in fact table: %s", fk_nulls)
 
-    # 3. Referential Integrity (Fact -> Dimensions)
+    # 3. Referential Integrity (Fact -> Dimensions) (DQ-PREP-03)
     ref_errors = {}
     for col, dim_df, pk in [
         ("id_tiempo", dim_tiempo, "id_tiempo"),
@@ -352,6 +395,7 @@ def validate_prepared_data(tables: Dict[str, pd.DataFrame], expected_totals: Dic
     results_summary.append({
         "rule_id": "DQ-PREP-03",
         "dimension": "Consistency",
+        "requirement": "R1–R7",
         "description": "Referential integrity (fact foreign keys must exist in dimensions)",
         "expected": "0 orphans",
         "actual": ref_errors,
@@ -372,6 +416,7 @@ def validate_prepared_data(tables: Dict[str, pd.DataFrame], expected_totals: Dic
     results_summary.append({
         "rule_id": "DQ-PREP-05",
         "dimension": "Accuracy & Reconciliation",
+        "requirement": "All",
         "description": "Reconciliation of measures between source extract and fact table",
         "expected": f"victims={expected_victims}, records={expected_records}",
         "actual": f"victims={loaded_victims}, records={loaded_records}",
@@ -390,6 +435,7 @@ def validate_prepared_data(tables: Dict[str, pd.DataFrame], expected_totals: Dic
     results_summary.append({
         "rule_id": "DQ-PREP-04",
         "dimension": "Validity",
+        "requirement": "R6, R7",
         "description": "Enriched dim_geografia comisarias_instaladas non-negative",
         "expected": ">= 0 for all rows",
         "actual": f"min={dim_geo['comisarias_instaladas'].min()}",
@@ -402,6 +448,7 @@ def validate_prepared_data(tables: Dict[str, pd.DataFrame], expected_totals: Dic
 
     audit_payload = {
         "gate": "validate_prepared",
+        "suite_name": "prepared_data_suite",
         "timestamp": datetime.now().isoformat(),
         "total_fact_rows": len(fact),
         "total_victims": loaded_victims,
@@ -413,7 +460,7 @@ def validate_prepared_data(tables: Dict[str, pd.DataFrame], expected_totals: Dic
 
     if critical_failure:
         raise ValidationError(
-            f"Gate 3 (Prepared Data Validation) failed with Critical severity. DW load blocked to protect analytical integrity."
+            "Gate 3 (Prepared Data Validation) failed with Critical severity. DW load blocked to protect analytical integrity."
         )
 
     logger.info("Gate 3 (Prepared Data) passed successfully! All dimensional invariants verified.")

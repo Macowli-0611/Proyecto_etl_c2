@@ -1,0 +1,8 @@
+{
+  "name": "val_api_raw",
+  "description": "Validation definition linking whole dataframe batch of MinJusticia raw API data to api_raw_suite",
+  "data_source": "pandas_api_raw",
+  "data_asset": "api_raw_asset",
+  "batch_definition": "batch_def_api",
+  "suite_name": "api_raw_suite"
+}

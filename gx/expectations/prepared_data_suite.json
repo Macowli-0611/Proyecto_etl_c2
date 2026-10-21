@@ -1,0 +1,111 @@
+{
+  "name": "prepared_data_suite",
+  "description": "Gate 3: Validación de datos integrados y preparados antes del Data Warehouse",
+  "meta": {
+    "great_expectations_version": "1.24.0",
+    "gate": "validate_prepared",
+    "suite_name": "prepared_data_suite",
+    "target_model": "Star Schema (fact_violencia_intrafamiliar, dim_geografia, dim_tiempo, dim_victima, dim_medio)",
+    "academic_requirements": "R1, R2, R3, R4, R5, R6, R7"
+  },
+  "expectations": [
+    {
+      "type": "expect_compound_columns_to_be_unique",
+      "kwargs": {
+        "column_list": [
+          "id_tiempo",
+          "id_geografia",
+          "id_victima",
+          "id_medio"
+        ]
+      },
+      "meta": {
+        "rule_id": "DQ-PREP-01",
+        "severity": "Critical",
+        "requirement": "R1–R7",
+        "dimension": "Uniqueness",
+        "target_table": "fact_violencia_intrafamiliar",
+        "metric": "Duplicate grain tuples == 0",
+        "description": "Fact table declared grain uniqueness (id_tiempo, id_geografia, id_victima, id_medio)."
+      },
+      "notes": "DQ-PREP-01: Critical. Fact table uniqueness at declared municipal grain (id_tiempo, id_geografia, id_victima, id_medio)."
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column_list": [
+          "id_tiempo",
+          "id_geografia",
+          "id_victima",
+          "id_medio"
+        ]
+      },
+      "meta": {
+        "rule_id": "DQ-PREP-02",
+        "severity": "Critical",
+        "requirement": "R1–R7",
+        "dimension": "Completeness",
+        "target_table": "fact_violencia_intrafamiliar",
+        "metric": "Null foreign keys == 0",
+        "description": "Foreign keys must not be null in fact table."
+      },
+      "notes": "DQ-PREP-02: Critical. Zero null foreign keys in fact table."
+    },
+    {
+      "type": "expect_table_foreign_keys_to_exist_in_dimensions",
+      "kwargs": {
+        "foreign_keys": {
+          "id_tiempo": "dim_tiempo.id_tiempo",
+          "id_geografia": "dim_geografia.id_geografia",
+          "id_victima": "dim_victima.id_victima",
+          "id_medio": "dim_medio.id_medio"
+        }
+      },
+      "meta": {
+        "rule_id": "DQ-PREP-03",
+        "severity": "Critical",
+        "requirement": "R1–R7",
+        "dimension": "Consistency & Referential Integrity",
+        "target_table": "fact_violencia_intrafamiliar",
+        "metric": "Orphan foreign keys == 0 across all dimensions",
+        "description": "Referential integrity: all fact foreign keys must exist in corresponding dimension primary keys."
+      },
+      "notes": "DQ-PREP-03: Critical. Referential integrity (fact foreign keys must exist in dimensions)."
+    },
+    {
+      "type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "comisarias_instaladas",
+        "min_value": 0
+      },
+      "meta": {
+        "rule_id": "DQ-PREP-04",
+        "severity": "Critical",
+        "requirement": "R6, R7",
+        "dimension": "Validity & Range",
+        "target_table": "dim_geografia",
+        "metric": "comisarias_instaladas >= 0 for 100% of rows",
+        "description": "Enriched dim_geografia comisarias_instaladas non-negative."
+      },
+      "notes": "DQ-PREP-04: Critical. Enriched dim_geografia comisarias_instaladas non-negative."
+    },
+    {
+      "type": "expect_table_reconciliation_totals_to_match",
+      "kwargs": {
+        "measures": [
+          "cantidad_victimas",
+          "numero_registros"
+        ]
+      },
+      "meta": {
+        "rule_id": "DQ-PREP-05",
+        "severity": "Critical",
+        "requirement": "All",
+        "target_table": "fact_violencia_intrafamiliar",
+        "metric": "Reconciliation delta (expected - actual) == 0 for victims and records",
+        "description": "Measure reconciliation between source extract manifest and prepared fact table."
+      },
+      "notes": "DQ-PREP-05: Critical. Reconciliation of measures between source extract and fact table."
+    }
+  ]
+}

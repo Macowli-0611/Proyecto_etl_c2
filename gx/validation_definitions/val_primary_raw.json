@@ -1,0 +1,8 @@
+{
+  "name": "val_primary_raw",
+  "description": "Validation definition linking whole dataframe batch of primary raw data to primary_raw_suite",
+  "data_source": "pandas_primary_raw",
+  "data_asset": "primary_raw_asset",
+  "batch_definition": "batch_def_primary",
+  "suite_name": "primary_raw_suite"
+}

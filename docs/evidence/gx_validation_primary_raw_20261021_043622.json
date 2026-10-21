@@ -1,0 +1,129 @@
+{
+  "gate": "validate_primary_raw",
+  "suite_name": "primary_raw_suite",
+  "timestamp": "2026-10-21T04:36:22.965371",
+  "total_records": 704551,
+  "overall_success": true,
+  "critical_failure": false,
+  "results": [
+    {
+      "expectation": "expect_table_columns_to_match_set",
+      "notes": "DQ-RAW1-01: Critical. Verifies mandatory schema columns exist.",
+      "success": true,
+      "result_details": {
+        "observed_value": [
+          "ARMAS MEDIOS",
+          "CANTIDAD",
+          "CANTIDAD_NUMERIC",
+          "CODIGO DANE",
+          "DEPARTAMENTO",
+          "FECHA HECHO",
+          "GENERO",
+          "GRUPO ETARIO",
+          "MUNICIPIO"
+        ],
+        "details": {
+          "mismatched": {
+            "unexpected": [
+              "CANTIDAD_NUMERIC"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "expectation": "expect_column_values_to_be_between",
+      "notes": "DQ-RAW1-04: Critical. Measure CANTIDAD must be >= 1.",
+      "success": true,
+      "result_details": {
+        "element_count": 704551,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "partial_unexpected_list": [],
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_percent_total": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_counts": [],
+        "partial_unexpected_index_list": []
+      }
+    },
+    {
+      "expectation": "expect_column_value_lengths_to_be_between",
+      "notes": "DQ-RAW1-03: Critical. DANE code must be 8-digit string.",
+      "success": true,
+      "result_details": {
+        "element_count": 704551,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "partial_unexpected_list": [],
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_percent_total": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_counts": [],
+        "partial_unexpected_index_list": []
+      }
+    },
+    {
+      "expectation": "expect_column_values_to_not_be_null",
+      "notes": "DQ-RAW1-05: Warning. Null gender must not exceed 1%.",
+      "success": true,
+      "result_details": {
+        "element_count": 704551,
+        "unexpected_count": 3379,
+        "unexpected_percent": 0.479596225113583,
+        "partial_unexpected_list": [
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN,
+          NaN
+        ],
+        "partial_unexpected_counts": [
+          {
+            "value": NaN,
+            "count": 20
+          }
+        ],
+        "partial_unexpected_index_list": [
+          7,
+          33,
+          42,
+          83,
+          115,
+          147,
+          248,
+          301,
+          380,
+          391,
+          402,
+          420,
+          441,
+          514,
+          652,
+          697,
+          738,
+          781,
+          805,
+          850
+        ]
+      }
+    }
+  ]
+}

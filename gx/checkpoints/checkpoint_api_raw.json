@@ -1,0 +1,20 @@
+{
+  "name": "checkpoint_api_raw",
+  "description": "Checkpoint for Gate 2: Evaluates raw MinJusticia API data against api_raw_suite",
+  "meta": {
+    "gate": "validate_api_raw",
+    "suite": "api_raw_suite"
+  },
+  "validation_definitions": [
+    {
+      "name": "val_api_raw"
+    }
+  ],
+  "actions": [
+    {
+      "name": "store_validation_result",
+      "type": "StoreValidationResultAction",
+      "target_store_name": "validations_store"
+    }
+  ]
+}

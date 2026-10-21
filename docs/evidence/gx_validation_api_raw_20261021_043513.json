@@ -1,0 +1,145 @@
+{
+  "gate": "validate_api_raw",
+  "suite_name": "api_raw_suite",
+  "timestamp": "2026-10-21T04:35:13.824202",
+  "total_records": 1249,
+  "overall_success": true,
+  "critical_failure": false,
+  "results": [
+    {
+      "expectation": "expect_table_columns_to_match_set",
+      "notes": "DQ-RAW2-01: Critical. Mandatory API schema attributes must exist.",
+      "success": true,
+      "result_details": {
+        "observed_value": [
+          "c_digo_dane_departamento",
+          "c_digo_dane_municipio",
+          "categoria_municipio",
+          "comisarias_ley_2126_100_000",
+          "coordenadas_de_ubicaci_n",
+          "direcci_n_comisara",
+          "existencia_de_comisarias",
+          "existencia_numeric",
+          "horario_de_atenci_n",
+          "latitud_de_ubicaci_n_de_la",
+          "longitud_de_ubicaci_n_de",
+          "nombre",
+          "nombre_1",
+          "nombre_comisaria",
+          "telefono_de_contacto",
+          "tipo_municipio_isla_rea_no"
+        ],
+        "details": {
+          "mismatched": {
+            "unexpected": [
+              "c_digo_dane_departamento",
+              "coordenadas_de_ubicaci_n",
+              "direcci_n_comisara",
+              "existencia_numeric",
+              "horario_de_atenci_n",
+              "latitud_de_ubicaci_n_de_la",
+              "longitud_de_ubicaci_n_de",
+              "nombre",
+              "nombre_1",
+              "nombre_comisaria",
+              "telefono_de_contacto",
+              "tipo_municipio_isla_rea_no"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "expectation": "expect_column_value_lengths_to_be_between",
+      "notes": "DQ-RAW2-02: Critical. API DANE code length must be between 4 and 5 characters.",
+      "success": true,
+      "result_details": {
+        "element_count": 1249,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "partial_unexpected_list": [],
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_percent_total": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_counts": [],
+        "partial_unexpected_index_list": []
+      }
+    },
+    {
+      "expectation": "expect_column_values_to_be_between",
+      "notes": "DQ-RAW2-04: Critical. Existing comisarías count must be non-negative.",
+      "success": true,
+      "result_details": {
+        "element_count": 1249,
+        "unexpected_count": 0,
+        "unexpected_percent": 0.0,
+        "partial_unexpected_list": [],
+        "missing_count": 106,
+        "missing_percent": 8.486789431545235,
+        "unexpected_percent_total": 0.0,
+        "unexpected_percent_nonmissing": 0.0,
+        "partial_unexpected_counts": [],
+        "partial_unexpected_index_list": []
+      }
+    },
+    {
+      "expectation": "expect_column_values_to_be_in_set",
+      "notes": "DQ-RAW2-03: Warning. Municipal category domain validity.",
+      "success": true,
+      "result_details": {
+        "element_count": 1249,
+        "unexpected_count": 17,
+        "unexpected_percent": 1.3610888710968776,
+        "partial_unexpected_list": [
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan"
+        ],
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_percent_total": 1.3610888710968776,
+        "unexpected_percent_nonmissing": 1.3610888710968776,
+        "partial_unexpected_counts": [
+          {
+            "value": "nan",
+            "count": 17
+          }
+        ],
+        "partial_unexpected_index_list": [
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          125,
+          126
+        ]
+      }
+    }
+  ]
+}

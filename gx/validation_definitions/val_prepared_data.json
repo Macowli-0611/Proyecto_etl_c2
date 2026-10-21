@@ -1,0 +1,8 @@
+{
+  "name": "val_prepared_data",
+  "description": "Validation definition linking prepared star schema tables to prepared_data_suite",
+  "data_source": "pandas_prepared_data",
+  "data_asset": "prepared_star_schema_asset",
+  "batch_definition": "batch_def_prepared",
+  "suite_name": "prepared_data_suite"
+}

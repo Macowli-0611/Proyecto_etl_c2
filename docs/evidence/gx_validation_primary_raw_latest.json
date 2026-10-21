@@ -1,6 +1,7 @@
 {
   "gate": "validate_primary_raw",
-  "timestamp": "2026-10-20T18:53:53.482145",
+  "suite_name": "primary_raw_suite",
+  "timestamp": "2026-10-21T04:39:12.970416",
   "total_records": 704551,
   "overall_success": true,
   "critical_failure": false,
@@ -31,8 +32,8 @@
       }
     },
     {
-      "expectation": "expect_column_value_lengths_to_be_between",
-      "notes": "DQ-RAW1-03: Critical. DANE code must be 8-digit string.",
+      "expectation": "expect_column_values_to_be_between",
+      "notes": "DQ-RAW1-04: Critical. Measure CANTIDAD must be >= 1.",
       "success": true,
       "result_details": {
         "element_count": 704551,
@@ -48,8 +49,8 @@
       }
     },
     {
-      "expectation": "expect_column_values_to_be_between",
-      "notes": "DQ-RAW1-04: Critical. Measure CANTIDAD must be >= 1.",
+      "expectation": "expect_column_value_lengths_to_be_between",
+      "notes": "DQ-RAW1-03: Critical. DANE code must be 8-digit string.",
       "success": true,
       "result_details": {
         "element_count": 704551,

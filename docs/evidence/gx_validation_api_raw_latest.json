@@ -1,6 +1,7 @@
 {
   "gate": "validate_api_raw",
-  "timestamp": "2026-10-20T18:53:53.521190",
+  "suite_name": "api_raw_suite",
+  "timestamp": "2026-10-21T04:39:08.658809",
   "total_records": 1249,
   "overall_success": true,
   "critical_failure": false,
@@ -88,15 +89,56 @@
       "success": true,
       "result_details": {
         "element_count": 1249,
-        "unexpected_count": 0,
-        "unexpected_percent": 0.0,
-        "partial_unexpected_list": [],
-        "missing_count": 17,
-        "missing_percent": 1.3610888710968776,
-        "unexpected_percent_total": 0.0,
-        "unexpected_percent_nonmissing": 0.0,
-        "partial_unexpected_counts": [],
-        "partial_unexpected_index_list": []
+        "unexpected_count": 17,
+        "unexpected_percent": 1.3610888710968776,
+        "partial_unexpected_list": [
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan",
+          "nan"
+        ],
+        "missing_count": 0,
+        "missing_percent": 0.0,
+        "unexpected_percent_total": 1.3610888710968776,
+        "unexpected_percent_nonmissing": 1.3610888710968776,
+        "partial_unexpected_counts": [
+          {
+            "value": "nan",
+            "count": 17
+          }
+        ],
+        "partial_unexpected_index_list": [
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122,
+          123,
+          124,
+          125,
+          126
+        ]
       }
     }
   ]

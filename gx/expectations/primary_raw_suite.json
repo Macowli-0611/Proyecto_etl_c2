@@ -1,0 +1,105 @@
+{
+  "name": "primary_raw_suite",
+  "description": "Gate 1: Validación cruda de fuente primaria (Reporte Delito Violencia Intrafamiliar - Policía Nacional DIJIN)",
+  "meta": {
+    "great_expectations_version": "1.24.0",
+    "gate": "validate_primary_raw",
+    "suite_name": "primary_raw_suite",
+    "source": "Policía Nacional de Colombia - DIJIN",
+    "target_table": "raw_primary_domestic_violence",
+    "academic_requirements": "R1, R2, R3, R4, R5"
+  },
+  "expectations": [
+    {
+      "type": "expect_table_columns_to_match_set",
+      "kwargs": {
+        "column_set": [
+          "DEPARTAMENTO",
+          "MUNICIPIO",
+          "CODIGO DANE",
+          "ARMAS MEDIOS",
+          "FECHA HECHO",
+          "GENERO",
+          "GRUPO ETARIO",
+          "CANTIDAD"
+        ],
+        "exact_match": false
+      },
+      "meta": {
+        "rule_id": "DQ-RAW1-01",
+        "severity": "Critical",
+        "requirement": "R1–R5",
+        "dimension": "Completeness",
+        "metric": "Missing columns == 0",
+        "description": "Mandatory columns must exist in raw extract."
+      },
+      "notes": "DQ-RAW1-01: Critical. Verifies mandatory schema columns exist."
+    },
+    {
+      "type": "expect_column_values_to_match_regex",
+      "kwargs": {
+        "column": "FECHA HECHO",
+        "regex": "^\\s*\\d{1,2}/\\d{1,2}/\\d{4}\\s*$"
+      },
+      "meta": {
+        "rule_id": "DQ-RAW1-02",
+        "severity": "Critical",
+        "requirement": "R1",
+        "dimension": "Validity & Format",
+        "metric": "Parseable DD/MM/YYYY dates == 100%",
+        "description": "Incident date matches DD/MM/YYYY format."
+      },
+      "notes": "DQ-RAW1-02: Critical. Incident date matches DD/MM/YYYY format."
+    },
+    {
+      "type": "expect_column_value_lengths_to_be_between",
+      "kwargs": {
+        "column": "CODIGO DANE",
+        "min_value": 8,
+        "max_value": 8,
+        "mostly": 0.9999
+      },
+      "meta": {
+        "rule_id": "DQ-RAW1-03",
+        "severity": "Critical",
+        "requirement": "R2, R5",
+        "dimension": "Format & Length",
+        "metric": "DANE code length == 8 for >= 99.99%",
+        "description": "DANE code must be 8-digit string at poblado level in raw extract."
+      },
+      "notes": "DQ-RAW1-03: Critical. DANE code must be 8-digit string."
+    },
+    {
+      "type": "expect_column_values_to_be_between",
+      "kwargs": {
+        "column": "CANTIDAD_NUMERIC",
+        "min_value": 1
+      },
+      "meta": {
+        "rule_id": "DQ-RAW1-04",
+        "severity": "Critical",
+        "requirement": "R1–R5",
+        "dimension": "Validity & Range",
+        "metric": "Value >= 1 for 100% of rows",
+        "description": "Measure CANTIDAD must be a positive integer >= 1."
+      },
+      "notes": "DQ-RAW1-04: Critical. Measure CANTIDAD must be >= 1."
+    },
+    {
+      "type": "expect_column_values_to_not_be_null",
+      "kwargs": {
+        "column": "GENERO",
+        "mostly": 0.99
+      },
+      "meta": {
+        "rule_id": "DQ-RAW1-05",
+        "severity": "Warning",
+        "requirement": "R3",
+        "dimension": "Completeness",
+        "metric": "Null gender <= 1.0%",
+        "description": "Unreported gender must not exceed 1% of extract."
+      },
+      "notes": "DQ-RAW1-05: Warning. Null gender must not exceed 1%."
+    }
+  ]
+}

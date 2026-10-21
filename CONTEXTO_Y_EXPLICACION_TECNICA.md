@@ -200,9 +200,10 @@ Cualquier infracción **Crítica** lanza un `ValidationError` que detiene el flu
   `extract_api` $\rightarrow$ `validate_api_raw`  
   Ambas compuertas aprobadas $\rightarrow$ `transform_and_clean_and_integrate` $\rightarrow$ `validate_prepared` $\rightarrow$ `load_dimensional_dw`.
 * **Políticas de Reintento Selectivas:**
-  - Extracción de API: `retries=3, retry_delay=10s, exponential backoff` (resiliencia ante microcortes de red o límites de SODA API).
-  - Carga a DW: `retries=1, retry_delay=5s` (resiliencia ante sockets de base de datos).
-  - Compuertas de Calidad: `retries=0` (Fail Fast; los errores deterministas de calidad de datos nunca deben reintentarse automáticamente).
+  - Extracción Primaria: `retries=2, retry_delay=timedelta(minutes=1)` (resiliencia ante bloqueos u operaciones I/O temporales).
+  - Extracción de API: `retries=3, retry_delay=timedelta(minutes=2)` (resiliencia ante microcortes de red, timeouts o límites 429 de SODA API).
+  - Carga a DW: `retries=2, retry_delay=timedelta(minutes=1)` (resiliencia ante saturación transitoria de sockets/conexiones de base de datos).
+  - Compuertas de Calidad y Transformación: `retries=0` (Fail Fast; los fallos deterministas de validación GX o de contrato de integración nunca deben reintentarse automáticamente con el mismo lote).
 
 ---
 
@@ -268,13 +269,18 @@ Proyecto_etl_C2/
 ├── .env.example                       # Plantilla de variables de entorno seguras
 ├── .gitignore                         # Exclusión de artefactos, pycache y temporales
 ├── Dockerfile                         # Contenedor para ejecución reproducible del pipeline
-├── docker-compose.yaml                # Orquestación de PostgreSQL 16
+├── docker-compose.yaml                # Orquestación de PostgreSQL 16 y Apache Airflow 3.1.8
 ├── requirements.txt                   # Dependencias fijadas (GX, Airflow, Pandas, etc.)
-├── README.md                          # Documentación maestra con las 25 secciones del PDF
+├── README.md                          # Documentación maestra con las 26 secciones de la rúbrica
 ├── CONTEXTO_Y_EXPLICACION_TECNICA.md  # Este documento de contexto técnico detallado
-├── GUIA_EJECUCION_PASO_A_PASO.md      # Guía paso a paso para evaluadores externos
 ├── dags/
-│   └── etl_violencia_intrafamiliar_dag.py  # DAG de Airflow 3.X con TaskFlow API
+│   └── etl_violencia_intrafamiliar_dag.py  # DAG de Airflow 3.1.8 con Task SDK y reintentos selectivos
+├── gx/                                # Infraestructura Great Expectations 1.X
+│   ├── gx_config.yaml                 # Configuración global y manifiesto de calidad
+│   ├── README_GX.md                   # Matriz de trazabilidad y documentación de suites
+│   ├── expectations/                  # Expectation Suites JSON (Gates 1, 2 y 3)
+│   ├── checkpoints/                   # Checkpoints declarativos de ejecución
+│   └── validation_definitions/        # Definiciones de validación por dataset
 ├── dashboard/
 │   ├── index.html                     # Frontend Glassmorphism / Dark Mode
 │   ├── styles.css                     # Estilos visuales de alto impacto
