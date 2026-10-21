@@ -1062,17 +1062,22 @@
           <!-- Test B -->
           <div class="card">
             <div>
-              <div class="card-title" style="color: var(--danger);">Prueba B: Falla Controlada</div>
-              <p class="card-desc" style="margin-bottom: 12px;">Inyección de error para probar el freno de emergencia.</p>
-              <ul class="clean-list" style="font-size: 0.88rem; gap: 8px;">
-                <li><strong>Condición inyectada:</strong> Eliminamos a propósito la columna obligatoria de comisarías.</li>
-                <li>La compuerta 2 detectó la falta y frenó la ejecución.</li>
-                <li>Las tareas de transformación y carga quedaron <strong>bloqueadas</strong>.</li>
-                <li>La base de datos quedó <strong>100% protegida e intacta</strong>.</li>
+              <div class="card-title" style="color: var(--danger);">Prueba B: Falla Controlada (Airflow)</div>
+              <p class="card-desc" style="margin-bottom: 8px;">Inyección de error para probar el freno de emergencia.</p>
+              <ul class="clean-list" style="font-size: 0.85rem; gap: 6px;">
+                <li><strong>Inyección:</strong> Se removió columna obligatoria de comisarías.</li>
+                <li><strong>Freno en Gate 2:</strong> <code>validate_api_raw</code> detectó violación crítica y lanzó <code>AirflowFailException</code>.</li>
               </ul>
+              <div style="font-family: var(--font-mono); font-size: 0.74rem; background: var(--bg-alt); padding: 8px 10px; border-radius: 6px; margin: 8px 0; border: 1px solid var(--border); line-height: 1.45;">
+                <div style="color: var(--text-dim); margin-bottom: 2px;"># Estados en Airflow Web UI:</div>
+                <div>extract_api: <span style="color: var(--success); font-weight: 600;">success</span></div>
+                <div>validate_api_raw: <span style="color: var(--danger); font-weight: 700;">FAILED</span></div>
+                <div>transform_and_clean: <span style="color: var(--warning); font-weight: 600;">upstream_failed</span></div>
+                <div>load_dimensional_dw: <span style="color: var(--warning); font-weight: 600;">upstream_failed</span></div>
+              </div>
             </div>
             <div class="callout callout-danger">
-              <strong>Estado:</strong> APROBADO (Bloqueo exitoso verificado).
+              <strong>Protección Total:</strong> Downstream bloqueado, DW 100% intacto.
             </div>
           </div>
 
